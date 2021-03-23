@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Model Weights
+.pt
+.pth
+
+# VSCode
+.vscode
