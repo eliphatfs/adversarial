@@ -6,7 +6,6 @@ from models import WideResNet
 from model import get_model_for_attack
 from eval_model import eval_model_with_attack
 import argparse
-import os
 
 
 def parse_args():
@@ -24,15 +23,13 @@ def parse_args():
         '--model_path', type=str,
         default="./models/weights/model-wideres-pgdHE-wide10.pt"
     )
-    parser.add_argument('--gpu_id', type=str, default="0,1")
+    parser.add_argument('--device', type=str, default="cuda:0")
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = parse_args()
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id  # 多卡机设置使用的gpu卡号
-    gpu_num = max(len(args.gpu_id.split(',')), 1)
-    device = torch.device('cpu')
+    device = torch.device(args.device)
     # model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
     if args.model_name != "":
         model = get_model_for_attack(args.model_name).to(device)
