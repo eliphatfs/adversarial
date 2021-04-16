@@ -9,13 +9,15 @@ class CosineLinear(nn.Module):
         super(CosineLinear, self).__init__()
 
         self.in_features = in_features
-        self.out_features = out_features    
+        self.out_features = out_features
         self.weight = Parameter(torch.Tensor(in_features, out_features))
         nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
-        x = F.normalize(input, dim=-1)
-        w = F.normalize(self.weight, dim=0)
+        # x = F.normalize(input, dim=-1)
+        # w = F.normalize(self.weight, dim=0)
+        x = input
+        w = self.weight
         cos_theta = x.mm(w)
         return w, cos_theta
 

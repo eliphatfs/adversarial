@@ -7,6 +7,8 @@ from pgd_attack import PGDAttack
 from pnewton_test import PNewtonAttack
 from mod_pgd_attack import PGDAttackMod2
 from chihao_happy_attack import ChihaoHappyAttack
+from sobol_happy_attack import SobolHappyAttack
+from spsa import SPSA
 from models import WideResNet
 from model import get_model_for_attack
 from eval_model import eval_model_with_attack
@@ -23,7 +25,7 @@ def parse_args():
                         help='max distance for pgd attack (default: 8/255)')
     parser.add_argument('--perturb_steps', type=int, default=20,
                         help='iterations for pgd attack (default pgd20)')
-    parser.add_argument('--model_name', type=str, default="model3")
+    parser.add_argument('--model_name', type=str, default="model6")
     parser.add_argument(
         '--model_path', type=str,
         default="./models/weights/model-wideres-pgdHE-wide10.pt"
@@ -46,7 +48,7 @@ if __name__ == '__main__':
             'models/weights/wideres34-10-pgdHE.pt'))
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
-    attack = ChihaoHappyAttack(args.step_size, args.epsilon, args.perturb_steps)
+    attack = SobolHappyAttack(args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
     test_loader = get_test_cifar(args.batch_size)
     natural_acc, robust_acc, distance = eval_model_with_attack(

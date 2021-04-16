@@ -27,19 +27,23 @@ def load_w(model, path):
 def get_model_for_attack(model_name):
     if model_name == 'model1':
         model = ResNet34()
-        load_w(model, "models/weights/resnet34.pt")
+        load_w(model, "./models/weights/resnet34.pt")
     elif model_name == 'model2':
         model = ResNet18()
-        load_w(model, "models/weights/resnet18_AT.pt")
+        load_w(model, "./models/weights/resnet18_AT.pt")
     elif model_name == 'model3':
         model = SmallResNet()
-        load_w(model, "models/weights/res_small.pth")
+        load_w(model, "./models/weights/res_small.pth")
     elif model_name == 'model4':
         model = WideResNet34()
-        load_w(model, "models/weights/trades_wide_resnet.pt")
+        pref = next(model.parameters())
+        model.load_state_dict(filter_state_dict(torch.load(
+            "./models/weights/trades_wide_resnet.pt",
+            map_location=pref.device
+        )))
     elif model_name == 'model5':
         model = WideResNet()
-        load_w(model, "models/weights/wideres34-10-pgdHE.pt")
+        load_w(model, "./models/weights/wideres34-10-pgdHE.pt")
     elif model_name == 'model6':
         model = WideResNet28()
         pref = next(model.parameters())
