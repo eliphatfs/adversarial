@@ -18,9 +18,9 @@ class PGDAttackMod2():
             with torch.enable_grad():
                 # value, index = model(x_adv).max(-1)
                 # loss_c = value.sum()
-                loss_c = 1000 * F.cross_entropy(model(x_adv), y)
+                loss_c = F.mse_loss(model(x_adv), model(x.detach()))
             grad = torch.autograd.grad(loss_c, [x_adv])[0]
-            print(grad.max())
+            print(grad.max().item())
             x_adv = x_adv.detach() + self.step_size * torch.sign(grad.detach())
             x_adv = torch.min(
                 torch.max(x_adv, x - self.epsilon), x + self.epsilon)

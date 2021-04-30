@@ -1,5 +1,8 @@
 # DevLog
 
+## Apr.30
+- [Thank you, Second Order!](./second_order_attack.py)
+
 ## Apr.16
 - Performed comprehensive tests on model robustness
   1. model1: weak

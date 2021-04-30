@@ -14,10 +14,8 @@ class CosineLinear(nn.Module):
         nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
-        # x = F.normalize(input, dim=-1)
-        # w = F.normalize(self.weight, dim=0)
-        x = input
-        w = self.weight
+        x = F.normalize(input, dim=-1)
+        w = F.normalize(self.weight, dim=0)
         cos_theta = x.mm(w)
         return w, cos_theta
 
