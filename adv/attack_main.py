@@ -35,7 +35,7 @@ def parse_args():
         default="./models/weights/model-wideres-pgdHE-wide10.pt"
     )
     parser.add_argument('--device', type=str, default="cuda:1")
-    return parser.parse_args([])
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
