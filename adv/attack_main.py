@@ -20,7 +20,7 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
-    parser.add_argument('--batch-size', type=int, default=1, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=2, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('--step_size', type=int, default=0.003,
                         help='step size for pgd attack(default:0.003)')

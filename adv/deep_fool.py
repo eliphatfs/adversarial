@@ -21,33 +21,51 @@ class DeepFoolAttack():
     def __call__(self, model, x, y):
         model.eval()
         x_adv = x.detach().clone()
-        # x_adv.requires_grad_()
-        for i in range(self.perturb_steps):
-            for idx, (batch_x, batch_y) in enumerate(zip(x_adv, y)):
-                batch_x = torch.tensor(batch_x, requires_grad=True)
-                l_min = float('inf')
-                with torch.enable_grad():
-                    pred = model(batch_x.unsqueeze(0))[0]
-                batch_grad = torch.autograd.grad(pred[batch_y], [batch_x], retain_graph=True)[0]
-                total_pertub = torch.zeros_like(batch_x)
-                for k, val in enumerate(pred):
-                    if k == batch_y:
-                        continue
-                    w = torch.autograd.grad(pred[k], [batch_x], retain_graph=True)[0] - batch_grad
-                    f = val - pred[batch_y]
-                    L = torch.linalg.norm(f.flatten(0), 1) / torch.linalg.norm(w.flatten(0), 1)
-                    if L < l_min:
-                        l_min = L
-                        w_l = w
-                        f_l = f
-                pertub = torch.linalg.norm(f_l.flatten(0), 1) / torch.linalg.norm(w_l.flatten(0), 1) * torch.sign(w_l)
-                x_adv[idx] = batch_x + pertub
-                total_pertub = total_pertub + pertub
+        for idx, (sample, label) in enumerate(zip(x_adv, y)):
+            backup = sample.unsqueeze(0).detach().clone()
+            sample = sample.unsqueeze(0).detach().clone().requires_grad_(True)
+            k_i = label
+            i = 0
+            while k_i == label and i < self.perturb_steps:
+                predictions = model(sample)  # shape: 1 * num_classes
+                num_classes = predictions.shape[-1]
+                pertub = float('inf')
+                all_gradient = torch.autograd.functional.jacobian(
+                    lambda x: model(x), sample)[0]
+                original_gradient = all_gradient[label]
 
-        print("Unclamped: {:.4f}".format(abs(pertub).max().item()))
-        x_adv = torch.min(
-            torch.max(pertub+x, x - self.epsilon), x + self.epsilon)
-        x_adv = torch.clamp(x_adv, 0.0, 1.0)
-        print("Clamped: {:.4f}".format(abs(x_adv - x).max().item()))
-        print()
+                w_argmin = torch.zeros_like(original_gradient)
+                for k in range(num_classes):
+                    if k == label:
+                        continue
+                    current_gradient = all_gradient[k]
+                    w_k = current_gradient - original_gradient
+                    f_k = predictions[0, k] - predictions[0, label]
+
+                    candidate = abs(f_k.item()) / \
+                        torch.linalg.norm(w_k.flatten(), 1)
+                    if candidate < pertub:
+                        pertub = candidate
+                        w_argmin = w_k
+
+                pertub = pertub * w_argmin / \
+                    torch.linalg.norm(w_argmin.flatten(), 1)
+
+                pertubed_sample = sample.clone().detach() + self.step_size * \
+                    torch.sign(pertub.detach())
+                pertubed_sample = torch.min(
+                    torch.max(pertubed_sample, backup - self.epsilon), backup + self.epsilon)
+                pertubed_sample = torch.clamp(pertubed_sample, 0.0, 1.0)
+
+                sample = pertubed_sample.clone().detach().requires_grad_(True)
+
+                predictions = model(sample)
+                k_i = torch.argmax(predictions)
+
+                x_adv[idx] = pertubed_sample[0]
+
+                i += 1
+
+        print("#### Attack finished. l-inf Norm: {:.5f}".format(torch.linalg.norm((x - x_adv).flatten(), float('inf')).item()))
+
         return x_adv

@@ -1,5 +1,8 @@
 # DevLog
 
+## May.07
+- Implemented DeepFool.
+
 ## Apr.30
 - [Thank you, Second Order!](./second_order_attack.py)
 
