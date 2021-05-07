@@ -52,7 +52,7 @@ if __name__ == '__main__':
             'models/weights/wideres34-10-pgdHE.pt'))
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
-    attack = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
+    attack = DeepFoolAttack(args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
     test_loader = get_test_cifar(args.batch_size)
     natural_acc, robust_acc, distance = eval_model_with_attack(
