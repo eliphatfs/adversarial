@@ -27,7 +27,7 @@ class BetterSecondOrderAttack():
                 d2 = fn(x + ap) - fn_orig
                 # print("D1", d1)
                 # print("D2", d2)
-                tries.append(abs(d2 - 2 * d1).item())
+                tries.append(abs(d2 / (2 * d1)).item())
             print("Max", numpy.max(tries), "Min", numpy.min(tries), "Mean", numpy.mean(tries))
 
         def minimized(cz):
