@@ -10,6 +10,7 @@ from chihao_happy_attack import ChihaoHappyAttack
 from sobol_happy_attack import SobolHappyAttack
 from hybrid_attack import HybridAttack
 from second_order_attack import SecondOrderAttack
+from better_second_order_attack import BetterSecondOrderAttack
 from deep_fool import DeepFoolAttack
 from spsa import SPSA
 from models import WideResNet
@@ -20,7 +21,7 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
-    parser.add_argument('--batch-size', type=int, default=2, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('--step_size', type=int, default=0.003,
                         help='step size for pgd attack(default:0.003)')
@@ -28,12 +29,12 @@ def parse_args():
                         help='max distance for pgd attack (default: 8/255)')
     parser.add_argument('--perturb_steps', type=int, default=20,
                         help='iterations for pgd attack (default pgd20)')
-    parser.add_argument('--model_name', type=str, default="model4")
+    parser.add_argument('--model_name', type=str, default="model6")
     parser.add_argument(
         '--model_path', type=str,
         default="./models/weights/model-wideres-pgdHE-wide10.pt"
     )
-    parser.add_argument('--device', type=str, default="cuda:0")
+    parser.add_argument('--device', type=str, default="cuda:1")
     return parser.parse_args([])
 
 
@@ -51,7 +52,7 @@ if __name__ == '__main__':
             'models/weights/wideres34-10-pgdHE.pt'))
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
-    attack = DeepFoolAttack(args.step_size, args.epsilon, args.perturb_steps)
+    attack = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
     test_loader = get_test_cifar(args.batch_size)
     natural_acc, robust_acc, distance = eval_model_with_attack(
