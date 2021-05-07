@@ -21,26 +21,30 @@ class DeepFoolAttack():
     def __call__(self, model, x, y):
         model.eval()
         x_adv = x.detach().clone()
-        for idx, (sample, label) in enumerate(zip(x_adv, y)):
-            backup = sample.unsqueeze(0).detach().clone()
-            sample = sample.unsqueeze(0).detach().clone().requires_grad_(True)
-            k_i = label
-            i = 0
-            while k_i == label and i < self.perturb_steps:
-                predictions = model(sample)  # shape: 1 * num_classes
+        x_cpu = x.cpu().detach().clone()
+        active_indices = list(range(len(x_adv)))
+        for i in range(self.perturb_steps):
+            if len(active_indices) == 0:
+                break
+            samples = x_adv[active_indices]
+            predictions = model(samples).cpu()
+            all_gradient = torch.autograd.functional.jacobian(
+                lambda cx: model(cx).sum(0), samples
+            ).transpose(0, 1).cpu()
+            for ei, idx in enumerate(active_indices):
+                label = y[idx].item()
+                sample = samples[ei].cpu()
                 num_classes = predictions.shape[-1]
                 pertub = float('inf')
-                all_gradient = torch.autograd.functional.jacobian(
-                    lambda x: model(x), sample)[0]
-                original_gradient = all_gradient[label]
+                original_gradient = all_gradient[ei, label]
 
                 w_argmin = torch.zeros_like(original_gradient)
                 for k in range(num_classes):
                     if k == label:
                         continue
-                    current_gradient = all_gradient[k]
+                    current_gradient = all_gradient[ei, k]
                     w_k = current_gradient - original_gradient
-                    f_k = predictions[0, k] - predictions[0, label]
+                    f_k = predictions[ei, k] - predictions[ei, label]
 
                     candidate = abs(f_k.item()) / \
                         torch.linalg.norm(w_k.flatten(), 1)
@@ -51,21 +55,18 @@ class DeepFoolAttack():
                 pertub = pertub * w_argmin / \
                     torch.linalg.norm(w_argmin.flatten(), 1)
 
-                pertubed_sample = sample.clone().detach() + self.step_size * \
-                    torch.sign(pertub.detach())
+                pertubed_sample = sample + self.step_size * torch.sign(pertub)
                 pertubed_sample = torch.min(
-                    torch.max(pertubed_sample, backup - self.epsilon), backup + self.epsilon)
+                    torch.max(pertubed_sample, x_cpu[idx] - self.epsilon), x_cpu[idx] + self.epsilon)
                 pertubed_sample = torch.clamp(pertubed_sample, 0.0, 1.0)
 
-                sample = pertubed_sample.clone().detach().requires_grad_(True)
-
-                predictions = model(sample)
-                k_i = torch.argmax(predictions)
-
-                x_adv[idx] = pertubed_sample[0]
-
-                i += 1
+                x_adv[idx] = pertubed_sample.to(x_adv.device)
+            predictions = model(x_adv[active_indices])
+            pred_labels = predictions.argmax(-1)
+            active_indices = [
+                idx for idx, ypr, ytr in zip(active_indices, pred_labels, y[active_indices])
+                if ypr == ytr
+            ]
 
         print("#### Attack finished. l-inf Norm: {:.5f}".format(torch.linalg.norm((x - x_adv).flatten(), float('inf')).item()))
-
         return x_adv

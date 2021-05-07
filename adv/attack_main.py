@@ -1,6 +1,7 @@
 # %%
 
 import torch
+import torch.nn as nn
 
 from utils import get_test_cifar
 from pgd_attack import PGDAttack
@@ -41,7 +42,6 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     device = torch.device(args.device)
-    # model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
     if args.model_name != "":
         model = get_model_for_attack(args.model_name).to(device)
         # 根据model_name, 切换要攻击的model
@@ -52,6 +52,7 @@ if __name__ == '__main__':
             'models/weights/wideres34-10-pgdHE.pt'))
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
+    model = nn.DataParallel(model, device_ids=[1, 2, 3, 4, 5, 6, 7])
     attack = DeepFoolAttack(args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
     test_loader = get_test_cifar(args.batch_size)

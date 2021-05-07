@@ -2,6 +2,18 @@
 
 ## May.07
 - Implemented DeepFool.
+- Optimized DeepFool.
+- Baseline evaluation (PGD20)
+  + model1. Natural Acc: 0.94290, Robust acc: 0.00040, distance: 0.03137
+  + model2. Natural Acc: 0.83020, Robust acc: 0.51290, distance: 0.03137
+  + model3. Natural Acc: 0.80330, Robust acc: 0.65150, distance: 0.03137
+  + model4. Natural Acc: 0.84920, Robust acc: 0.56180, distance: 0.03137
+  + model5. Natural Acc: 0.81430, Robust acc: 0.54820, distance: 0.03137
+  + model6. Natural Acc: 0.88250, Robust acc: 0.64340, distance: 0.03137
+- Benchmarking model4
+  + DeepFool. Natural Acc: 0.84920, Robust acc: 0.53810, distance: 0.03137
+  + PGD20. Natural Acc: 0.84920, Robust acc: 0.56180, distance: 0.03137
+
 
 ## Apr.30
 - [Thank you, Second Order!](./second_order_attack.py)
