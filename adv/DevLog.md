@@ -1,5 +1,10 @@
 # DevLog
 
+## May.08
+- Abstract Interpreter paper ref: http://proceedings.mlr.press/v80/mirman18b/mirman18b.pdf
+- Graph tracer via torch.jit.
+- Abstract Interpreter with hybrid zonotope domain from DiffAI.
+
 ## May.07
 - Implemented DeepFool.
 - Optimized DeepFool.
