@@ -4,6 +4,7 @@
 - Abstract Interpreter paper ref: http://proceedings.mlr.press/v80/mirman18b/mirman18b.pdf
 - Graph tracer via torch.jit.
 - Abstract Interpreter with hybrid zonotope domain from DiffAI.
+- Implemented the prover. However, HBox is too expensive to run on the models, while Box with no correlations does not have enough analysis precision. Too bad!
 
 ## May.07
 - Implemented DeepFool.
