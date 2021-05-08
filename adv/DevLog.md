@@ -14,6 +14,10 @@
   + model6. Natural Acc: 0.89800, Robust Acc: 0.86800 (sampled for test speed)
   + Obscured gradient gives false sense of security.
   + **Why is this, mathematically?**
+- Analyzed activation values before ReLU
+  + Robust models tend to have smaller activation values.
+  + Obfuscated gradient model actually have very large activation values.
+  + Before and after tweaking the ReLU (to be leaky) the trends of these activation values stay unchanged.
 
 ## May.07
 - Implemented DeepFool.
