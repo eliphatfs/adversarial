@@ -86,8 +86,8 @@ class WideResNet(nn.Module):
         
     def forward(self, x):
         if self.i_normalize:
-            self.mu = torch.tensor((0.4914, 0.4822, 0.4465)).view(3,1,1).cuda()
-            self.std = torch.tensor((0.2471, 0.2435, 0.2616)).view(3,1,1).cuda()
+            self.mu = x.new_tensor([0.4914, 0.4822, 0.4465]).view(3,1,1)
+            self.std = x.new_tensor([0.2471, 0.2435, 0.2616]).view(3,1,1)
             x = (x - self.mu)/self.std
         out = self.conv1(x)
         out = self.block1(out)

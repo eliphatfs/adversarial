@@ -15,6 +15,16 @@ class BetterSecondOrderAttack():
 
     def __call__(self, model, x, y):
         model.eval()
+        import torch.jit
+        tmod = torch.jit.trace(model, x)
+        del tmod.training
+        tmod.eval()
+        tmod = torch.jit.freeze(tmod)
+        code, consts = tmod.code_with_constants
+        print()
+        print(code)
+        print(consts.const_mapping.keys())
+        # print(consts.c123)
 
         with torch.no_grad():
             fn = lambda cx: torch.trace(model(cx)[..., y])
