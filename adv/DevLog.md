@@ -5,6 +5,15 @@
 - Graph tracer via torch.jit.
 - Abstract Interpreter with hybrid zonotope domain from DiffAI.
 - Implemented the prover. However, HBox is too expensive to run on the models, while Box with no correlations does not have enough analysis precision. Too bad!
+- Sudden idea and rather interesting findings.
+  + Since we have implemented a tracer we can tweak and play around. If ReLU is removed the problem is easily solvable. So let's remove it! Interesting thing is going on...
+  + We relax ReLU to be leaky (that is, `max(0, x) * (1 - p) + x * p`). When `p` is set to 0.02 nothing seem to happen on any model. But when `p` is set to 0.2 or even larger...
+  + model1. Natural Acc: 0.94596, Robust Acc: 0.05362 (sampled for test speed)
+  + model3. Natural Acc: 0.80330, Robust acc: 0.19970 (fully run)
+  + model4. Natural Acc: 0.86800, Robust Acc: 0.83200 (sampled for test speed)
+  + model6. Natural Acc: 0.89800, Robust Acc: 0.86800 (sampled for test speed)
+  + Obscured gradient gives false sense of security.
+  + **Why is this, mathematically?**
 
 ## May.07
 - Implemented DeepFool.
