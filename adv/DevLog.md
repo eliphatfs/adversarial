@@ -18,6 +18,8 @@
   + Robust models tend to have smaller activation values.
   + Obfuscated gradient model actually have very large activation values.
   + Before and after tweaking the ReLU (to be leaky) the trends of these activation values stay unchanged.
+- Implemented Frank–Wolfe algorithm
+  + model6. Natural Acc: 0.88250, Robust acc: 0.63790, distance: 0.03137. A bit better than PGD20, with same speed (DeepFool is a bit slower.)
 
 ## May.07
 - Implemented DeepFool.
