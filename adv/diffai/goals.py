@@ -1,14 +1,8 @@
-import future
-import builtins
-import past
-import six
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.autograd
-import components as comp
 from torch.distributions import multinomial, categorical
 
 import math

@@ -1,8 +1,3 @@
-import future
-import builtins
-import past
-import six
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -717,6 +712,7 @@ class Zonotope(HybridZonotope):
     def applySuper(self, ret):
         batches = ret.head.size()[0]
         num_elem = h.product(ret.head.size()[1:])
+        print(num_elem)
         ei = h.getEi(batches, num_elem)
 
         if len(ret.head.size()) > 2:
