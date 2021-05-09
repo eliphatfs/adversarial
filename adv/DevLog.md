@@ -1,5 +1,12 @@
 # DevLog
 
+## May.09
+- Barrier method
+  + Maybe not enough steps. Poor performance.
+- Krylov subspace method by gradients
+  + Merely reached PGD20 baseline...
+  + model4. Natural Acc: 0.84920, Robust acc: 0.56030, distance: 0.03137.
+
 ## May.08
 - Abstract Interpreter paper ref: http://proceedings.mlr.press/v80/mirman18b/mirman18b.pdf
 - Graph tracer via torch.jit.

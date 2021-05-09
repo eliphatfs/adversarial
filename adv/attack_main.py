@@ -20,6 +20,7 @@ from model import get_model_for_attack
 from eval_model import eval_model_with_attack
 from arch_transfer_attack import ArchTransferAttack
 import argparse
+from barrier_attack import BarrierMethodAttack
 
 
 def parse_args():

@@ -1,4 +1,5 @@
 import torch
+import numpy
 import torch.nn.functional as F
 from typing import *
 
@@ -45,13 +46,16 @@ class ArchTransferAttack():
         self.perturb_steps = perturb_steps
         self.random_start = random_start
         self.processed_model_id = None
+        self.records = []
 
     def __call__(self, model, x, y):
         model.eval()
         if self.processed_model_id != id(model):
             self.processed_model = process_model(model, x)
         x_adv = x.detach()
-        for i in range(self.perturb_steps):
+        self.records.append((self.processed_model(None, x).argmax(-1) == y).float().mean().item())
+        print(numpy.mean(self.records))
+        '''for i in range(self.perturb_steps):
             x_adv.requires_grad_()
             with torch.enable_grad():
                 loss_c = F.cross_entropy(self.processed_model(None, x_adv), y)
@@ -59,5 +63,5 @@ class ArchTransferAttack():
             x_adv = x_adv.detach() + self.step_size * torch.sign(grad.detach())
             x_adv = torch.min(
                 torch.max(x_adv, x - self.epsilon), x + self.epsilon)
-            x_adv = torch.clamp(x_adv, 0.0, 1.0)
+            x_adv = torch.clamp(x_adv, 0.0, 1.0)'''
         return x_adv
