@@ -1,6 +1,26 @@
 # DevLog
 
 ## May.14
+**Stumbled on an attack method**
+[github link](https://github.com/Line290/FeatureAttack)
+
+**Paper of Model 5**
+[Boosting Adversarial Training with Hypersphere Embedding](https://arxiv.org/pdf/2002.08619.pdf)
+
+[github repo](https://github.com/ShawnXYang/AT_HE)
+
+- Feature Normalization and Weight Normalization, FN and WN
+  - Normalize feature and weight at the second-last layer (layer before softmax)
+  - When both feature and weight are normalized, $out = \cos(\theta) = \frac{Wz}{\|W\|\|z\|}$
+    - Is this equivalent to the `CosineLinear` layer in `model3`?
+    - Seems that `model5` did not normalize either of feature or weight. So why does `model5` work? Did it use AM and AT only?
+- Angular Margin, AM
+  - Performed only in training.
+  - Modifies CE loss
+  - $-\mathbf{1}_y^T\log Softmax\left(s\cdot \left(\cos\theta - m\cdot \mathbf{1}_y\right)\right)$
+  - Adds a margin $m$ to softmax.
+  - Similar to the margin in SVM. Improves robustness.
+
 **Paper of Model 6**
 [Adversarial Weight Perturbation Helps Robust Generalization](https://www.researchgate.net/profile/Dongxian-Wu/publication/349101174_Adversarial_Weight_Perturbation_Helps_Robust_Generalization/links/601fe92f92851c4ed5560c53/Adversarial-Weight-Perturbation-Helps-Robust-Generalization.pdf)
 - Observation: **Generalization gap**. Many AT models have **poor test robustness** as training epochs go up. i.e. Generalization of adversarial-trained networks need more data to train for robustness on test sets.
