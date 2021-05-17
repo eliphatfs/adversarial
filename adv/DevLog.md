@@ -9,6 +9,44 @@
   + model5. Natural Acc: 0.81430, Robust acc: 0.53460, distance: 0.03137.
   + model6. Natural Acc: 0.88250, Robust acc: 0.63790, distance: 0.03137.
 
+## May.14
+**Stumbled on an attack method**
+[github link](https://github.com/Line290/FeatureAttack)
+
+**Paper of Model 5**
+[Boosting Adversarial Training with Hypersphere Embedding](https://arxiv.org/pdf/2002.08619.pdf)
+
+[github repo](https://github.com/ShawnXYang/AT_HE)
+
+- Feature Normalization and Weight Normalization, FN and WN
+  - Normalize feature and weight at the second-last layer (layer before softmax)
+  - When both feature and weight are normalized, $out = \cos(\theta) = \frac{Wz}{\|W\|\|z\|}$
+    - Is this equivalent to the `CosineLinear` layer in `model3`?
+    - Seems that `model5` did not normalize either of feature or weight. So why does `model5` work? Did it use AM and AT only?
+- Angular Margin, AM
+  - Performed only in training.
+  - Modifies CE loss
+  - $-\mathbf{1}_y^T\log Softmax\left(s\cdot \left(\cos\theta - m\cdot \mathbf{1}_y\right)\right)$
+  - Adds a margin $m$ to softmax.
+  - Similar to the margin in SVM. Improves robustness.
+
+**Paper of Model 6**
+[Adversarial Weight Perturbation Helps Robust Generalization](https://www.researchgate.net/profile/Dongxian-Wu/publication/349101174_Adversarial_Weight_Perturbation_Helps_Robust_Generalization/links/601fe92f92851c4ed5560c53/Adversarial-Weight-Perturbation-Helps-Robust-Generalization.pdf)
+- Observation: **Generalization gap**. Many AT models have **poor test robustness** as training epochs go up. i.e. Generalization of adversarial-trained networks need more data to train for robustness on test sets.
+  - **Why is this?** The weight-loss landscape of AT models becomes sharper when training epochs goes up. Therefore small purtabations on the **weights** of the model may cause the model to produce poor output. This paper found that the weight-loss landscape is well-correlated to the generalization gap.
+  - Most AT methods mainly focused on smoothing the **input-loss landscape** of models.
+  - But some AT methods including TRADES (model4) implicitly smoothed **weight-loss landscape**.
+- Proposed method: Adversarial Weight Purtabation.
+  - Explicitly add the weight-loss landscape into the loss function as a regularization term.
+  - This is done by generating purtabation $v$ on the weight $w$ of a model and minimize the loss of the model with pertubed weight $w + v$.
+- Procedure:
+  - Given a batch of data and a trained model.
+    1. Generate adversarial example $x'$ (using PGD, etc.) for each sample in the batch. (maximize training loss of each sample w.r.t. input $x$)
+    2. Generate pertubation $v$ on weight using all $x'$'s. (maximize training loss of the entire batch w.r.t. weight $w$)
+    3. Re-train the model with pertubed weight $f(x; w+v)$. (update $w+v$)
+    4. Update $w$ (remove pertubation $v$ from updated $w+v$), repeat until convergence.
+
+
 ## May.09
 - Barrier method
   + Maybe not enough steps. Poor performance.
