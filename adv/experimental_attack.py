@@ -182,11 +182,9 @@ class ExpAttack():
             logits = model(cx)  # F.softmax(model(cx), -1)
             # labels = torch.eye(10).to(y.device)[y]
             # d_inf = torch.log(torch.max(labels / (logits + 1e-7), -1)[0]).mean()
-            return (
-                torch.nn.functional.cross_entropy(logits, y)
-                + torch.nn.functional.cross_entropy(logits * 2, y)
-                + torch.nn.functional.cross_entropy(logits * 4, y)
-            )
+            L = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            # AdAmp (maybe not a good name for the op)
+            return sum(w ** 2 * F.cross_entropy(logits * w, y) for w in L)
 
         x_adv = x.detach()
         for k in range(self.perturb_steps):
