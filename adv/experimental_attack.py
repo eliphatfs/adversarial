@@ -195,4 +195,4 @@ class ExpAttack():
             a = 2 / (k + 2)
             x_adv = x_adv + a * (s - x_adv)
             # print((model(x_adv).argmax(-1) != y).float().sum())
-        return x_adv
+        return torch.clamp(x_adv, 0, 1)
