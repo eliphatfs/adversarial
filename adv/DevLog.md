@@ -1,5 +1,18 @@
 # DevLog
 
+## Benchmark result summary table
+(`U` means untested)
+| Method | M1 | M2 | M3 | M4 | M5 | M6 | BWD/FWD |
+| ------ | -- | -- | -- | -- | -- | -- |
+| No attack | 94.29 | 83.02 | 80.33 | 84.92 | 81.43 | 88.25 | 0/0 |
+| PGD20 | 0.04 | 51.29 | 65.15 | 56.18 | 54.82 | 64.34 | 20/0 |
+| DeepFool | 0.02 | 48.05 | 31.60 | 53.81 | 52.55 | 60.99 | 200/20 |
+| ReLeak-PGD | 5.36 | U | 19.97 | 83.20 | U | 86.80 | 20/0 |
+| Krylov | U | U | U | 56.03 | U | 65.10 | 20/20 |
+| F-W | 0.00 | 50.25 | 63.12 | 55.30 | 53.46 | 63.79 | 20/0 |
+| F-W-Amp | 60.32 | 48.11 | 56.34 | 53.50 | 53.00 | 60.92 | 20/0 |
+
+
 ## May.18
 - Frank-Wolfe, 20 steps, adaptively amplified.
   + model1. Natural Acc: 0.94290, Robust acc: 0.00000, distance: 0.03137.
