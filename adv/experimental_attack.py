@@ -50,40 +50,7 @@ class ExpAttack():
         return results
     
     def __call__(self, model, x, y):
-        model.eval()
-
-        def func(cx):
-            logits = model(cx)
-            return torch.nn.functional.cross_entropy(logits, y)
-
-        def safe_jac(cx):
-            jac = torch.autograd.functional.jacobian(func, cx)
-            jac = torch.randn_like(jac) * 1e-7 + jac
-            return jac
-
-        tg = x.flatten(1).shape[-1] ** 0.5
-        b = safe_jac(x)
-        krylov = [torch.sign(b) / tg]
-        batch_dot = lambda u, v: torch.bmm(u.flatten(1).unsqueeze(-2), v.flatten(1).unsqueeze(-1)).flatten(0)
-        H = torch.zeros(
-            [x.shape[0], self.perturb_steps + 1, self.perturb_steps],
-            dtype=x.dtype,
-            device=x.device
-        )
-        last = krylov[-1]
-        for i in range(self.perturb_steps):
-            v = safe_jac(x + last * self.epsilon * 0.7) - b
-            for j, u in enumerate(krylov):
-                H[:, j, i] = batch_dot(v, u)
-                v = v - H[:, j, i].reshape(-1, 1, 1, 1) * u
-            H[:, i + 1, i] = torch.linalg.norm(v.flatten(1), dim=-1)
-            v = v / H[:, i + 1, i].reshape(-1, 1, 1, 1)
-            krylov.append(v)
-            last = v
-        U = torch.stack(krylov[:-1])
-        Uf = U.flatten(2).permute(1, 2, 0)  # n, *, m
-        # x_adv = (x + torch.sign(b) * self.epsilon).detach().clone()
-        x_adv = x.detach().clone()
+        return self.frank_wolfe(model, x, y)
 
 
     def not_so_bad_krylov(self, model, x, y):
@@ -161,16 +128,76 @@ class ExpAttack():
             lam *= 3 / 4
         return x_adv
 
+    def extra_frank_wolfe(self, model, x, y):
+        model.eval()
+
+        def func(cx):
+            logits = model(cx)
+            return -torch.nn.functional.cross_entropy(logits, y)
+
+        def safe_jac(cx):
+            jac = torch.autograd.functional.jacobian(func, cx)
+            jac = torch.randn_like(jac) * 1e-7 + jac
+            return jac
+
+        x_backup = x.detach().clone()
+        x_adv = x.detach() - torch.sign(safe_jac(x)) * self.epsilon
+        batch_dot = lambda u, v: torch.bmm(u.flatten(1).unsqueeze(-2), v.flatten(1).unsqueeze(-1)).flatten(0)
+        for t in range(self.perturb_steps):
+            d = torch.zeros_like(x_adv)
+            ve = 0
+            grad = safe_jac(x_adv)
+            for _ in range(self.perturb_steps):
+                r = -grad - d
+                v = x + torch.sign(r) * self.epsilon
+                dnorm = torch.norm(d.flatten(1), dim=-1).reshape(-1, 1, 1, 1) + 1e-7
+                mindnorm = -d / dnorm
+                ora = (
+                    batch_dot(v - x_adv, r)
+                    > batch_dot(mindnorm, r)
+                ).float().reshape(-1, 1, 1, 1)
+                u = ora * (v - x_adv) + (1 - ora) * mindnorm
+                lam = batch_dot(r, u) / (1e-7 + torch.norm(u.flatten(1), dim=-1) ** 2)
+                dprime = d + lam.reshape(-1, 1, 1, 1) * u
+                simd = F.cosine_similarity(d.flatten(1), -grad.flatten(1))
+                simdp = F.cosine_similarity(dprime.flatten(1), -grad.flatten(1))
+                ora2 = (simdp > simd + 1e-3).float().reshape(-1, 1, 1, 1)
+                d = ora2 * dprime + (1 - ora2) * d
+                vep = (
+                    (ve + lam) * ora.reshape(-1)
+                    + (1 - ora).reshape(-1) * (ve * (1 - lam / dnorm.reshape(-1)))
+                )
+                ve = ora2.flatten() * vep + (1 - ora2).flatten() * ve
+            g = d / (1e-7 + ve.reshape(-1, 1, 1, 1))
+            x_adv = x_adv + g * 2 / (t + 2)
+            # x_adv = x + torch.clamp(x_adv + g * 2 / (t + 2) - x, -self.epsilon, self.epsilon)
+            print((x_adv - x_backup).abs().max())
+            print((model(x_adv).argmax(-1) != y).float().sum())
+        return x_adv
 
     def frank_wolfe(self, model, x, y):
         model.eval()
         
         def func(cx):
-            logits = model(cx)
+            logits = model(cx)  # F.softmax(model(cx), -1)
             # labels = torch.eye(10).to(y.device)[y]
+            # d_inf = torch.log(torch.max(labels / (logits + 1e-7), -1)[0]).mean()
             return torch.nn.functional.cross_entropy(logits, y)
 
         x_adv = x.detach()
+        '''jac = torch.autograd.functional.jacobian(func, x_adv)
+        jac = jac / torch.norm(jac.flatten(1), dim=-1).reshape(-1, 1, 1, 1)
+        tg = x.flatten(1).shape[-1] ** 0.5
+        vs1 = []
+        vs2 = []
+        for i in range(20):
+            vs1.append(func(x_adv + jac * self.epsilon * i / 20 * tg))
+            vs2.append(func(x_adv + torch.sign(jac) * self.epsilon * i / 20))
+        import matplotlib.pyplot as plotlib
+        plotlib.plot(vs1, label='1')
+        plotlib.plot(vs2, label='2')
+        plotlib.legend()
+        plotlib.show()'''
         for k in range(self.perturb_steps):
             jac = torch.autograd.functional.jacobian(func, x_adv)
             s = x + torch.sign(jac) * self.epsilon
