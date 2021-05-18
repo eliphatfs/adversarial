@@ -182,25 +182,19 @@ class ExpAttack():
             logits = model(cx)  # F.softmax(model(cx), -1)
             # labels = torch.eye(10).to(y.device)[y]
             # d_inf = torch.log(torch.max(labels / (logits + 1e-7), -1)[0]).mean()
-            return torch.nn.functional.cross_entropy(logits, y)
+            return (
+                torch.nn.functional.cross_entropy(logits, y)
+                + torch.nn.functional.cross_entropy(logits * 2, y)
+                + torch.nn.functional.cross_entropy(logits * 4, y)
+            )
 
         x_adv = x.detach()
-        '''jac = torch.autograd.functional.jacobian(func, x_adv)
-        jac = jac / torch.norm(jac.flatten(1), dim=-1).reshape(-1, 1, 1, 1)
-        tg = x.flatten(1).shape[-1] ** 0.5
-        vs1 = []
-        vs2 = []
-        for i in range(20):
-            vs1.append(func(x_adv + jac * self.epsilon * i / 20 * tg))
-            vs2.append(func(x_adv + torch.sign(jac) * self.epsilon * i / 20))
-        import matplotlib.pyplot as plotlib
-        plotlib.plot(vs1, label='1')
-        plotlib.plot(vs2, label='2')
-        plotlib.legend()
-        plotlib.show()'''
         for k in range(self.perturb_steps):
             jac = torch.autograd.functional.jacobian(func, x_adv)
-            s = x + torch.sign(jac) * self.epsilon
+            jac_norm = torch.norm(jac.flatten(1), dim=-1).reshape(-1, 1, 1, 1)
+            safe_jac = jac / (jac_norm + 1e-7) + torch.randn_like(jac) * 5e-8
+            s = x + torch.sign(safe_jac) * self.epsilon
             a = 2 / (k + 2)
             x_adv = x_adv + a * (s - x_adv)
+            # print((model(x_adv).argmax(-1) != y).float().sum())
         return x_adv

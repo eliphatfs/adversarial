@@ -1,5 +1,21 @@
 # DevLog
 
+## May.18
+- Frank-Wolfe, 20 steps, adaptively amplified.
+  + model1. Natural Acc: 0.94290, Robust acc: 0.00000, distance: 0.03137.
+  + model2. Natural Acc: 0.83020, Robust acc: 0.47820, distance: 0.03137.
+  + model3. Natural Acc: 0.80330, Robust acc: 0.44640, distance: 0.03137.
+  + model4. Natural Acc: 0.84920, Robust acc: 0.53580, distance: 0.03137.
+  + model5. Natural Acc: 0.81430, Robust acc: 0.52290, distance: 0.03137.
+  + model6. Natural Acc: 0.88250, Robust acc: 0.61300, distance: 0.03137.
+- Frank-Wolfe, 20 steps, amplified.
+  + model1. Natural Acc: 0.94290, Robust acc: 0.60320, distance: 0.03137.
+  + model2. Natural Acc: 0.83020, Robust acc: 0.48110, distance: 0.03137.
+  + model3. Natural Acc: 0.80330, Robust acc: 0.56340, distance: 0.03137.
+  + model4. Natural Acc: 0.84920, Robust acc: 0.53500, distance: 0.03137.
+  + model5. Natural Acc: 0.81430, Robust acc: 0.53000, distance: 0.03137.
+  + model6. Natural Acc: 0.88250, Robust acc: 0.60920, distance: 0.03137.
+
 ## May.17
 - Frank-Wolfe, same complexity as PGD, 20 steps.
   + model1. Natural Acc: 0.94290, Robust acc: 0.00000, distance: 0.03137.
