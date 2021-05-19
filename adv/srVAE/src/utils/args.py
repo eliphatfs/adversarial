@@ -38,7 +38,7 @@ def parser():
                         help="Number of Importance Weighting samples used for approximating the test log-likelihood.")
 
     # Training Parameters
-    PARSER.add_argument('--batch_size', default=24, type=int,
+    PARSER.add_argument('--batch_size', default=16, type=int,
                         help='Batch size.')
     PARSER.add_argument('--epochs', default=2000, type=int,
                         help='Number of training epochs.')
@@ -54,7 +54,7 @@ def parser():
                         choices=['cpu', 'cuda'],
                         help='Device to run the experiment.')
 
-    PARSER.add_argument('--use_tb', default=True, type=bool,
+    PARSER.add_argument('--use_tb', default=False, type=bool,
                         help='Use TensorBoard.')
     PARSER.add_argument('--tags', default='logs', type=str,
                         help='Run tags.')
