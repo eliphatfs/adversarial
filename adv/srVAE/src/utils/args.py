@@ -3,12 +3,14 @@ import argparse
 
 # ----- Parser -----
 
+
 def parser():
     PARSER = argparse.ArgumentParser(description='Training parameters.')
 
     # Dataset
     PARSER.add_argument('--dataset', default='CIFAR10', type=str,
-                        choices=['CIFAR10', 'CelebA', 'Imagenette', 'ImageNet32', 'ImageNet64'],
+                        choices=['CIFAR10', 'CelebA', 'Imagenette',
+                                 'ImageNet32', 'ImageNet64'],
                         help="Data to be used.")
     PARSER.add_argument('--img_resize', default=32, type=int,
                         help='Change image resolution.')
@@ -23,7 +25,8 @@ def parser():
 
     # Prior
     PARSER.add_argument('--prior', default='MixtureOfGaussians', type=str,
-                        choices=['StandardNormal', 'MixtureOfGaussians', 'RealNVP'],
+                        choices=['StandardNormal',
+                                 'MixtureOfGaussians', 'RealNVP'],
                         help='Prior type.')
     PARSER.add_argument('--z_dim', default=512, type=int,
                         help='Dimensionality of z latent space.')
@@ -59,12 +62,12 @@ def parser():
     PARSER.add_argument('--tags', default='logs', type=str,
                         help='Run tags.')
 
-
     ARGS = PARSER.parse_args()
 
     # Check device
     if ARGS.device is None:
-        ARGS.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        ARGS.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
 
     return ARGS
 

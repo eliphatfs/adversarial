@@ -47,7 +47,6 @@ class VAE(nn.Module):
         self.recon_loss = partial(dmol_loss, nc=self.x_shape[0])
         self.sample_distribution = partial(sample_from_dmol, nc=self.x_shape[0])
 
-
     def initialize(self, dataloader):
         """ Data dependent init for weight normalization 
             (Automatically done during the first forward pass).
@@ -107,7 +106,6 @@ class VAE(nn.Module):
         }
         return nelbo, diagnostics
 
-
     def forward(self, x, **kwargs):
         """ Forward pass through the inference and the generative model.
         """
@@ -124,6 +122,17 @@ class VAE(nn.Module):
             "x_logits"   : x_logits
         }
 
+    def encode(self, x):
+        """ Performs encoding and returns z_q"""
+        z_q_mean, z_q_logvar = self.q_z(x)
+        z_q = self.reparameterize(z_q_mean, z_q_logvar)
+
+        return z_q
+
+    def get_mean(self, x):
+        z_q_mean, _ = self.q_z(x)
+
+        return z_q_mean
 
 if __name__ == "__main__":
     pass

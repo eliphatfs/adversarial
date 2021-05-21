@@ -7,54 +7,57 @@ import os
 import torch
 import torch.nn as nn
 
-from src import *
+import src
 
 
 def train_model(dataset, model, writer=None):
-    train_loader, valid_loader, test_loader = dataloader(dataset)
-    data_shape = get_data_shape(train_loader)
+    train_loader, valid_loader, test_loader = src.data.dataloader(dataset)
+    data_shape = src.utils.get_data_shape(train_loader)
 
-    model = nn.DataParallel(globals()[model](data_shape).to(args.device), [0])
+    model = nn.DataParallel(src.VAE(
+        data_shape).to(src.utils.args.device), [0])
     # model = globals()[model](data_shape).to(args.device)
     model.module.initialize(train_loader)
 
-    criterion = ELBOLoss()
+    criterion = src.modules.loss.ELBOLoss()
     optimizer = torch.optim.Adamax(
         model.parameters(), lr=2e-3, betas=(0.9, 0.999), eps=1e-7)
-    scheduler = LowerBoundedExponentialLR(
+    scheduler = src.modules.optim.LowerBoundedExponentialLR(
         optimizer, gamma=0.999999, lower_bound=0.0001)
 
-    n_parameters(model, writer)
+    src.utils.n_parameters(model, writer)
 
-    for epoch in range(1, args.epochs):
+    for epoch in range(1, src.utils.args.epochs):
         # Train and Validation epoch
-        train_losses = train(
+        train_losses = src.modules.train(
             model, criterion, optimizer, scheduler, train_loader)
-        valid_losses = evaluate(
+        valid_losses = src.modules.evaluate(
             model, criterion, valid_loader)
         # Visual Evaluation
-        generate(model, args.n_samples, epoch, writer)
-        reconstruction(model, valid_loader,
-                                args.n_samples, epoch, writer)
+        src.plotting.generate(model, src.utils.args.n_samples, epoch, writer)
+        src.plotting.reconstruction(model, valid_loader,
+                                    src.utils.args.n_samples, epoch, writer)
         # Saving Model and Loggin
-        is_saved = save_model(
+        is_saved = src.utils.utils.save_model(
             model, optimizer, valid_losses['nelbo'], epoch)
-        logging(epoch, train_losses, valid_losses, is_saved, writer)
+        src.utils.utils.logging(epoch, train_losses,
+                                valid_losses, is_saved, writer)
 
 
 def resume_training(dataset, model):
-    train_loader, valid_loader, test_loader = dataloader(dataset)
-    data_shape = get_data_shape(train_loader)
+    train_loader, valid_loader, test_loader = src.data.dataloader(dataset)
+    data_shape = src.utils.get_data_shape(train_loader)
     writer = None
 
     pth = './src/models'
-    pth = os.path.join(pth, 'pretrained', args.model, args.dataset)
+    pth = os.path.join(pth, 'pretrained',
+                       src.utils.args.model, src.utils.args.dataset)
     pth_train = os.path.join(pth, 'trainable', 'model.pth')
 
-    model = globals()[model](data_shape).to(args.device)
+    model = src.VAE(data_shape).to(src.utils.args.device)
     model.initialize(train_loader)
 
-    criterion = ELBOLoss()
+    criterion = src.modules.loss.ELBOLoss()
     optimizer = torch.optim.Adamax(
         model.parameters(), lr=2e-3, betas=(0.9, 0.999), eps=1e-7)
 
@@ -72,42 +75,44 @@ def resume_training(dataset, model):
         print('? Fucked up loading optimizer')
         quit()
 
-    model = nn.DataParallel(model, [0]).to(args.device)
-    scheduler = LowerBoundedExponentialLR(
+    model = nn.DataParallel(model, [0]).to(src.utils.args.device)
+    scheduler = src.modules.optim.LowerBoundedExponentialLR(
         optimizer, gamma=0.999999, lower_bound=0.0001)
 
     print('Somehow successfully resumed')
     print('Resuming training from {:d} epoch'.format(checkpoint['epoch']))
 
-    for epoch in range(checkpoint['epoch'], args.epochs):
+    for epoch in range(checkpoint['epoch'], src.utils.args.epochs):
         # Train and Validation epoch
-        train_losses = train(
+        train_losses = src.modules.train(
             model, criterion, optimizer, scheduler, train_loader)
-        valid_losses = evaluate(
+        valid_losses = src.modules.evaluate(
             model, criterion, valid_loader)
         # Visual Evaluation
-        generate(model, args.n_samples, epoch, writer)
-        reconstruction(model, valid_loader,
-                                args.n_samples, epoch, writer)
+        src.plotting.generate(model, src.utils.args.n_samples, epoch, writer)
+        src.plotting.reconstruction(model, valid_loader,
+                                    src.utils.args.n_samples, epoch, writer)
         # Saving Model and Loggin
-        is_saved = save_model(
+        is_saved = src.utils.save_model(
             model, optimizer, valid_losses['nelbo'], epoch)
-        logging(epoch, train_losses, valid_losses, is_saved, writer)
+        src.utils.logging(epoch, train_losses, valid_losses, is_saved, writer)
 
 
 def load_and_evaluate(dataset, model, writer=None):
     pth = './src/models/'
 
     # configure paths
-    pth = os.path.join(pth, 'pretrained', args.model, args.dataset)
+    pth = os.path.join(pth, 'pretrained',
+                       src.utils.args.model, src.utils.args.dataset)
     pth_train = os.path.join(pth, 'trainable', 'model.pth')
 
     # get data
-    train_loader, valid_loader, test_loader = dataloaders.dataloader(dataset)
-    data_shape = get_data_shape(train_loader)
+    train_loader, valid_loader, test_loader = src.data.dataloaders.dataloader(
+        dataset)
+    data_shape = src.utils.get_data_shape(train_loader)
 
     # deifine model
-    model = globals()[model](data_shape).to(args.device)
+    model = src.VAE(data_shape).to(src.utils.args.device)
     model.initialize(train_loader)
 
     # load trained weights for inference
@@ -118,49 +123,51 @@ def load_and_evaluate(dataset, model, writer=None):
     except RuntimeError:
         print('* Failed to load the model. Parameter mismatch.')
         quit()
-    model = nn.DataParallel(model, [0]).to(args.device)
+    model = nn.DataParallel(model, [0]).to(src.utils.args.device)
     # model = model.to(args.device)
     model.eval()
-    criterion = ELBOLoss()
+    criterion = src.modules.loss.ELBOLoss()
 
     # Evaluation of the model
     # --- calculate elbo ---
-    test_losses = evaluate(model, criterion, test_loader)
+    test_losses = src.modules.evaluate(model, criterion, test_loader)
     print('ELBO: {} bpd'.format(test_losses['bpd']))
 
     # --- image generation ---
-    generate(model, n_samples=15*15)
+    src.plotting.generate(model, n_samples=15*15)
 
     # --- image reconstruction ---
-    reconstruction(model, test_loader, n_samples=15)
+    src.plotting.reconstruction(model, test_loader, n_samples=15)
 
     # --- image interpolation ---
-    interpolation(model, test_loader, n_samples=15)
+    src.plotting.interpolation(model, test_loader, n_samples=15)
 
     # --- calculate nll ---
-    bpd = calculate_nll(model, test_loader, criterion,
-                        args, iw_samples=args.iw_test)
-    print('NLL with {} weighted samples: {:4.2f}'.format(args.iw_test, bpd))
+    bpd = src.modules.loss.calculate_nll(
+        model, test_loader, criterion,
+        src.utils.args, iw_samples=src.utils.args.iw_test)
+    print('NLL with {} weighted samples: {:4.2f}'.format(
+        src.utils.args.iw_test, bpd))
 
 
 # ----- main -----
 
 def main():
     # Print configs
-    print_args(args)
+    src.utils.print_args(src.utils.args)
 
     # Control random seeds
-    fix_random_seed(seed=args.seed)
+    src.utils.fix_random_seed(seed=src.utils.args.seed)
 
     # Initialize TensorBoad writer (if enabled)
     writer = None
 
     # Train model
     # train_model(args.dataset, args.model, writer)
-    resume_training(args.dataset, args.model)
+    resume_training(src.utils.args.dataset, src.utils.args.model)
 
     # Evaluate best (latest saved) model
-    load_and_evaluate(args.dataset, args.model, writer)
+    load_and_evaluate(src.utils.args.dataset, src.utils.args.model, writer)
 
     # End Experiment
     writer.close()

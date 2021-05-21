@@ -45,7 +45,7 @@ def get_shape(z_dim):
         re-shape it to an appropriate 3-D tensor.
     """
     d = 8
-    if (z_dim%d==0) and (z_dim // (d*d) > 0):  # cx8x8
+    if (z_dim % d == 0) and (z_dim // (d*d) > 0):  # cx8x8
         H = W = d
         C = z_dim // (d*d)
         return (C, H, W)
@@ -67,7 +67,8 @@ def logging(epoch, train_losses, valid_losses, is_saved, writer=None):
             writer.add_scalar('Train Loss/' + loss, train_losses[loss], epoch)
 
         for loss in valid_losses:
-            writer.add_scalar('Validation Loss/' + loss, valid_losses[loss], epoch)
+            writer.add_scalar('Validation Loss/' + loss,
+                              valid_losses[loss], epoch)
 
     if is_saved:
         print('Epoch [{:4d}/{:4d}] | Train bpd: {:4.2f} | Val bpd: {:4.2f} * '.format(
@@ -77,6 +78,7 @@ def logging(epoch, train_losses, valid_losses, is_saved, writer=None):
             epoch, args.epochs, train_losses['bpd'], valid_losses['bpd']))
 
 # ----- Parameters Counting -----
+
 
 def get_params(module):
     try:
@@ -89,11 +91,12 @@ def n_parameters(model, writer=None):
     model = model.module if isinstance(model, nn.DataParallel) else model
 
     params_dict = {
-        "total" : get_params(model)
+        "total": get_params(model)
     }
 
     if writer:
-        writer.add_text('n_params', namespace2markdown(Namespace(**params_dict), title='Networks', values='Params'))    
+        writer.add_text('n_params', namespace2markdown(
+            Namespace(**params_dict), title='Networks', values='Params'))
 
     print(f'# Total Number of Parameters: {params_dict["total"] / 1e6:.3f}M')
 
@@ -101,6 +104,8 @@ def n_parameters(model, writer=None):
 # ----- Save and Load Model -----
 
 min_loss = None
+
+
 def save_model(model, optimizer, loss, epoch, pth='./src/models/'):
     """ Saves a torch model in two ways: to be retrained and/or for validation only.
     """
@@ -125,11 +130,11 @@ def save_model(model, optimizer, loss, epoch, pth='./src/models/'):
 
     # model to be used both for Inference and Resuming Training
     torch.save({
-                'epoch': epoch,
-                'model_state_dict': m.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss': loss
-                }, pth_train + '/model.pth')
+        'epoch': epoch,
+        'model_state_dict': m.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': loss
+    }, pth_train + '/model.pth')
 
     return True
 
@@ -137,10 +142,13 @@ def save_model(model, optimizer, loss, epoch, pth='./src/models/'):
 # ----- Tensorboard Utils -----
 
 def namespace2markdown(args, title='Hyperparameter', values='Values'):
-    txt = '<table> <thead> <tr> <td> <strong> ' + title + ' </strong> </td> <td> <strong> ' + values + ' </strong> </td> </tr> </thead>'
+    txt = '<table> <thead> <tr> <td> <strong> ' + title + \
+        ' </strong> </td> <td> <strong> ' + values + ' </strong> </td> </tr> </thead>'
     txt += ' <tbody> '
     for name, var in vars(args).items():
-        txt += '<tr> <td> <code>' + str(name) + ' </code> </td> ' + '<td> <code> ' + str(var) + ' </code> </td> ' + '<tr> '
+        txt += '<tr> <td> <code>' + \
+            str(name) + ' </code> </td> ' + '<td> <code> ' + \
+            str(var) + ' </code> </td> ' + '<tr> '
     txt += '</tbody> </table>'
     return markdown(txt)
 
