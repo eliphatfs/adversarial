@@ -1,7 +1,6 @@
 import os
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 import src
 
@@ -58,11 +57,20 @@ class VAEgisMkII(nn.Module):
             with torch.no_grad():
                 sample = self.encoder.encode(x)
             out = self.fc1(sample.reshape(-1, 512))
-            out = F.sigmoid(out)
+            out = torch.sigmoid(out)
             out = self.fc2(out)
-            out = F.sigmoid(out)
+            out = torch.sigmoid(out)
             out = self.fc3(out)
             return out
+        else:
+            with torch.no_grad():
+                sample = self.encoder.get_mean(x)
+                out = self.fc1(sample.reshape(-1, 512))
+                out = torch.sigmoid(out)
+                out = self.fc2(out)
+                out = torch.sigmoid(out)
+                out = self.fc3(out)
+                return out
 
 
 if __name__ == "__main__":
