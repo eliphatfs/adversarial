@@ -12,13 +12,33 @@ __all__ = [
 ]
 
 
+class AccumulateNorm(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.clear()
+
+    def clear(self):
+        self.act_norm = []
+
+    def value_and_clear(self):
+        ret = (torch.cat(self.act_norm) ** 2).mean()
+        self.clear()
+        return ret
+
+    def forward(self, x):
+        if self.training:
+            self.act_norm.append(x.flatten(1).max(-1)[0])
+        return x
+
+
 class VGG(nn.Module):
-    def __init__(self, features, num_classes=10, init_weights=True):
+    def __init__(self, normacc, features, num_classes=10, init_weights=True):
         super(VGG, self).__init__()
         self.features = features
         # CIFAR 10 (7, 7) to (1, 1)
         # self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        # self.normacc = normacc  # cumulateNorm()
 
         self.classifier = nn.Sequential(
             nn.Linear(512 * 1 * 1, 4096),
@@ -54,7 +74,7 @@ class VGG(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-def make_layers(cfg, batch_norm=False):
+def make_layers(cfg, normacc, batch_norm=False):
     layers = []
     in_channels = 3
     for v in cfg:
@@ -122,7 +142,8 @@ cfgs = {
 def _vgg(arch, cfg, batch_norm, pretrained, progress, device, **kwargs):
     if pretrained:
         kwargs["init_weights"] = False
-    model = VGG(make_layers(cfgs[cfg], batch_norm=batch_norm), **kwargs)
+    normacc = AccumulateNorm()
+    model = VGG(normacc, make_layers(cfgs[cfg], normacc, batch_norm=batch_norm), **kwargs)
     if pretrained:
         script_dir = os.path.dirname(__file__)
         state_dict = torch.load(
