@@ -17,7 +17,13 @@
 ## May.22
 - Implemented some regularization and ensembling tricks. 5% robustness acc under PGD20.
 - Implemented one-step grad L2 adversarial. 30% robustness acc under PGD20.
+- Visualized AdAmp and CrossEntropy loss of `FWAdAmp` against `model6`.
+![CE_AdAmp_dist](CE_AdAmp_distribution.png)
 
+## May.21
+- Benchmarking VAE
+  - Combined VAE encoder with 3-layer DNN
+  - Validation acc is low
 
 ## May.18
 - Frank-Wolfe, 20 steps, adaptively amplified. (tuning parameters...)

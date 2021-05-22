@@ -177,7 +177,7 @@ class ExpAttack():
 
     def frank_wolfe(self, model, x, y):
         model.eval()
-        
+    
         def func(cx):
             logits = model(cx)  # F.softmax(model(cx), -1)
             # labels = torch.eye(10).to(y.device)[y]
