@@ -14,6 +14,10 @@
 | F-W-Amp | 60.32 | 48.11 | 56.34 | 53.50 | 53.00 | 60.92 | **20/0** |
 | F-W-AdAmp | **0.00** | **47.79** | 45.00 | **53.27** | **52.35** | **60.54** | **20/0** |
 
+## May.22
+- Implemented some regularization and ensembling tricks. 5% robustness acc under PGD20.
+- Implemented one-step grad L2 adversarial. 30% robustness acc under PGD20.
+
 
 ## May.18
 - Frank-Wolfe, 20 steps, adaptively amplified. (tuning parameters...)
