@@ -31,6 +31,12 @@ class AccumulateNorm(nn.Module):
         return x
 
 
+class Saturation(nn.Module):
+
+    def forward(self, x):
+        return torch.log(1 + x)
+
+
 class VGG(nn.Module):
     def __init__(self, normacc, features, num_classes=10, init_weights=True):
         super(VGG, self).__init__()
@@ -44,9 +50,11 @@ class VGG(nn.Module):
             nn.Linear(512 * 1 * 1, 4096),
             # nn.Linear(512 * 7 * 7, 4096),
             nn.ReLU(True),
+            Saturation(),
             nn.Dropout(),
             nn.Linear(4096, 4096),
             nn.ReLU(True),
+            Saturation(),
             nn.Dropout(),
             nn.Linear(4096, num_classes),
         )
@@ -83,9 +91,9 @@ def make_layers(cfg, normacc, batch_norm=False):
         else:
             conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
             if batch_norm:
-                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
+                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True), Saturation()]
             else:
-                layers += [conv2d, nn.ReLU(inplace=True)]
+                layers += [conv2d, nn.ReLU(inplace=True), Saturation()]
             in_channels = v
     return nn.Sequential(*layers)
 

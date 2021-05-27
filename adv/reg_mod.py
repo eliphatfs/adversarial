@@ -13,7 +13,7 @@ optim = radam.RAdam(model.parameters())
 epsilon = 8 / 255
 
 
-for epoch in range(120, 240):
+for epoch in range(240):
     with tqdm.tqdm(train_loader) as train:
         running_loss = 0.0
         running_grad = 0.0
