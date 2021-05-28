@@ -1,10 +1,11 @@
+from experimental_attack import ExpAttack
+from pgd_attack import PGDAttack
 import os
 import argparse
 import torch
 import torch.nn as nn
 import time
 import torch.optim as optim
-from pgd_attack import pgd_attack
 from models import ResNet18
 from tqdm import trange
 
@@ -41,7 +42,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def train_adv_epoch(model, args, train_loader, device, optimizer, epoch):
+def train_adv_epoch(model, attack, args, train_loader, device, optimizer, epoch):
     model.train()
     corrects_adv, corrects = 0, 0
     data_num = 0
@@ -51,11 +52,7 @@ def train_adv_epoch(model, args, train_loader, device, optimizer, epoch):
             x, y = data.to(device), target.to(device)
             data_num += x.shape[0]
             optimizer.zero_grad()
-            x_adv = pgd_attack(
-                model, x, y, args.step_size,
-                args.epsilon, args.perturb_steps,
-                random_start=0.001, distance='l_inf'
-            )
+            x_adv = attack(model, x, y)
             model.train()
             output_adv = model(x_adv)
             loss = nn.CrossEntropyLoss()(output_adv, y)
@@ -115,11 +112,13 @@ if __name__ == "__main__":
                           momentum=args.momentum,
                           weight_decay=args.weight_decay)
 
+    attacker = ExpAttack(args.step_size, args.epsilon, args.perturb_steps)
+
     best_epoch, best_robust_acc = 0, 0.
     for e in range(args.epoch):
         adjust_learning_rate(optimizer, e)
         train_acc, train_robust_acc, loss = train_adv_epoch(
-            model, args, train_loader, device,  optimizer, e)
+            model, attacker, args, train_loader, device,  optimizer, e)
         if e % 3 == 0 or (e >= 74 and e <= 80):
             test_acc, test_robust_acc, _ = eval_model_pgd(
                 model, test_loader, device,
