@@ -14,6 +14,19 @@
 | F-W-Amp | 60.32 | 48.11 | 56.34 | 53.50 | 53.00 | 60.92 | **20/0** |
 | F-W-AdAmp | **0.00** | **47.79** | 45.00 | **53.27** | **52.35** | **60.54** | **20/0** |
 
+## May.29
+- Frank-Wolfe w/ Adversarial Weight Perturbation
+  - Does not work on ResNet34
+    - Acc stuck at ~ 0.10
+  - Basically does not work on ResNet18, requires gacha. 
+    - Acc stuck at ~ 0.10, but sometimes network could successfully trained
+  - Seemingly working on PreAct ResNet18
+- PGD w/ AWP (AT-AWP, `model6`'s training methods)
+  - Usually works on ResNet18
+  - Seemingly works on PreAct ResNet18
+- Why it does not work on normal ResNet architecture???
+- Copied & Pasted PreAct ResNet from AT-AWP repository
+
 ## May.28
 - Basic FWAT ふわふわタイム～
 

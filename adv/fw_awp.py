@@ -9,9 +9,11 @@ from tqdm import trange
 from eval_model import eval_model_pgd
 from utils import prepare_cifar, Logger, check_mkdir
 from eval_model import eval_model
-
-from models.resnet import ResNet34
+from models.resnet import ResNet34, ResNet18
+from models import PreActResNet18
 from experimental_attack import ExpAttack
+from pgd_attack import PGDAttack
+from awp import AdvWeightPerturb
 
 
 def parse_args():
@@ -20,7 +22,7 @@ def parse_args():
                         help='input batch size for training (default: 128)')
     parser.add_argument('--test_batch_size', type=int, default=512, metavar='N',
                         help='input batch size for training (default: 128)')
-    parser.add_argument('--step_size', type=int, default=0.007,
+    parser.add_argument('--step_size', type=float, default=0.03,
                         help='step size for pgd attack(default:0.03)')
     parser.add_argument('--perturb_steps', type=int, default=10,
                         help='iterations for pgd attack (default pgd20)')
@@ -39,10 +41,22 @@ def parse_args():
     parser.add_argument('--adv_train', type=int, default=1,
                         help='If use adversarial training')
     parser.add_argument('--gpu_id', type=str, default="0,1")
+    parser.add_argument('--awp_gamma', type=float, default=0.01)
+    parser.add_argument('--attacker', choices=['pgd', 'fw'], default='pgd')
     return parser.parse_args()
 
 
-def train_adv_epoch(model, attack, args, train_loader, device, optimizer, epoch):
+def train_fwawp_epoch(
+        model: nn.Module,
+        perturbator: AdvWeightPerturb,
+        attacker,
+        train_loader,
+        device,
+        optimizer: optim.Optimizer,
+        epoch):
+    """Frank-Wolfe w/ Adversarial Weight Perturbation.
+    T.H.E. Ultimate 缝合怪
+    """
     model.train()
     corrects_adv, corrects = 0, 0
     data_num = 0
@@ -51,13 +65,25 @@ def train_adv_epoch(model, attack, args, train_loader, device, optimizer, epoch)
         for batch_idx, (data, target) in enumerate(train_loader):
             x, y = data.to(device), target.to(device)
             data_num += x.shape[0]
-            optimizer.zero_grad()
-            x_adv = attack(model, x, y)
+
+            # get adversarial examples
+            x_adv = attacker(model, x, y)
+
             model.train()
+            # add pertubation
+            awp_dict = perturbator.calc_awp(x_adv, y)
+            perturbator.perturb_model(awp_dict)
+
+            # gradient descent
             output_adv = model(x_adv)
             loss = nn.CrossEntropyLoss()(output_adv, y)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+            # restore awp
+            perturbator.restore_perturb(awp_dict)
+
             loss_sum += loss.item()
             with torch.no_grad():
                 model.eval()
@@ -94,7 +120,7 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     gpu_num = max(len(args.gpu_id.split(',')), 1)
 
-    model_name = 'resnet34'
+    model_name = 'resnet34-fwawp'
     log_dir = "logs/%s_%s" % (time.strftime("%b%d-%H%M",
                                             time.localtime()), model_name)
     check_mkdir(log_dir)
@@ -102,23 +128,37 @@ if __name__ == "__main__":
     log.print(args)
 
     device = torch.device('cuda')
-    model = ResNet34().to(device)
+    model = PreActResNet18().to(device)
+    proxy = PreActResNet18().to(device)
     model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
+    proxy = nn.DataParallel(proxy, device_ids=[i for i in range(gpu_num)])
 
     train_loader, test_loader = prepare_cifar(
         args.batch_size, args.test_batch_size)
-    optimizer = optim.SGD(model.parameters(),
-                          lr=args.lr,
-                          momentum=args.momentum,
-                          weight_decay=args.weight_decay)
+    model_optimizer = optim.SGD(
+        model.parameters(),
+        lr=args.lr,
+        momentum=args.momentum,
+        weight_decay=args.weight_decay)
+    proxy_optimizer = optim.SGD(
+        proxy.parameters(),
+        lr=0.01,)
 
-    attacker = ExpAttack(args.step_size, args.epsilon, args.perturb_steps)
+    if args.attacker == 'pgd':
+        attacker = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
+    else:
+        attacker = ExpAttack(args.step_size, args.epsilon, args.perturb_steps)
+    perturbator = AdvWeightPerturb(
+        model=model,
+        proxy=proxy,
+        proxy_optim=proxy_optimizer,
+        gamma=args.awp_gamma,)
 
     best_epoch, best_robust_acc = 0, 0.
     for e in range(args.epoch):
-        adjust_learning_rate(optimizer, e)
-        train_acc, train_robust_acc, loss = train_adv_epoch(
-            model, attacker, args, train_loader, device,  optimizer, e)
+        adjust_learning_rate(model_optimizer, e)
+        train_acc, train_robust_acc, loss = train_fwawp_epoch(
+            model, perturbator, attacker, train_loader, device, model_optimizer, e)
         if e % 3 == 0 or (e >= 74 and e <= 80):
             test_acc, test_robust_acc, _ = eval_model_pgd(
                 model, test_loader, device,
