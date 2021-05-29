@@ -1,4 +1,6 @@
 import os
+import sys
+import pickle
 import argparse
 import torch
 import torch.nn as nn
@@ -42,7 +44,15 @@ def parse_args():
                         help='If use adversarial training')
     parser.add_argument('--gpu_id', type=str, default="0,1")
     parser.add_argument('--awp_gamma', type=float, default=0.01)
+    parser.add_argument('--awp_warmup', type=int, default=0)
     parser.add_argument('--attacker', choices=['pgd', 'fw'], default='pgd')
+    parser.add_argument(
+        '--model',
+        choices=['ResNet18', 'PreActResNet18', 'ResNet34'],
+        default='ResNet18')
+    parser.add_argument('--model_name', default='fwawp-resnet')
+    parser.add_argument('--resume', type=bool, default=False)
+    parser.add_argument('--checkpoint_path', default='./pretrained/ckpt.pt')
     return parser.parse_args()
 
 
@@ -61,6 +71,9 @@ def train_fwawp_epoch(
     corrects_adv, corrects = 0, 0
     data_num = 0
     loss_sum = 0
+    if epoch == args.awp_warmup:
+        print('Activating AWP.', file=sys.stderr)
+
     with trange(len(train_loader.dataset)) as pbar:
         for batch_idx, (data, target) in enumerate(train_loader):
             x, y = data.to(device), target.to(device)
@@ -71,8 +84,9 @@ def train_fwawp_epoch(
 
             model.train()
             # add pertubation
-            awp_dict = perturbator.calc_awp(x_adv, y)
-            perturbator.perturb_model(awp_dict)
+            if epoch >= args.awp_warmup:
+                perturbator.calc_awp(x_adv, y)
+                perturbator.perturb_model()
 
             # gradient descent
             output_adv = model(x_adv)
@@ -82,7 +96,8 @@ def train_fwawp_epoch(
             optimizer.step()
 
             # restore awp
-            perturbator.restore_perturb(awp_dict)
+            if epoch >= args.awp_warmup:
+                perturbator.restore_perturb()
 
             loss_sum += loss.item()
             with torch.no_grad():
@@ -115,12 +130,42 @@ def adjust_learning_rate(optimizer, epoch):
         param_group['lr'] = lr
 
 
+def get_model(model_name, device):
+    if model_name == 'ResNet18':
+        print("Model: ResNet18", file=sys.stderr)
+        return ResNet18().to(device), ResNet18().to(device)
+    elif model_name == 'ResNet34':
+        print("Model: ResNet34", file=sys.stderr)
+        return ResNet34().to(device), ResNet34().to(device)
+    elif model_name == 'PreActResNet18':
+        print("Model: PreAct-ResNet18", file=sys.stderr)
+        return PreActResNet18().to(device), PreActResNet18().to(device)
+
+
+def resume_training(
+        checkpoint_path,
+        model: nn.Module,
+        model_optim: optim.Optimizer,
+        proxy_optim: optim.Optimizer):
+    try:
+        checkpoint = torch.load(checkpoint_path)
+        model.load_state_dict(checkpoint['model'])
+        model_optim.load_state_dict(checkpoint['model_optim'])
+        proxy_optim.load_state_dict(checkpoint['proxy_optim'])
+    except BaseException as err:
+        print("? Failed to load models. Quitting...")
+        print(err)
+        quit()
+
+    return model, model_optim, proxy_optim, checkpoint['epoch']
+
+
 if __name__ == "__main__":
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     gpu_num = max(len(args.gpu_id.split(',')), 1)
 
-    model_name = 'resnet34-fwawp'
+    model_name = args.model_name
     log_dir = "logs/%s_%s" % (time.strftime("%b%d-%H%M",
                                             time.localtime()), model_name)
     check_mkdir(log_dir)
@@ -128,8 +173,7 @@ if __name__ == "__main__":
     log.print(args)
 
     device = torch.device('cuda')
-    model = PreActResNet18().to(device)
-    proxy = PreActResNet18().to(device)
+    model, proxy = get_model(args.model, device)
     model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
     proxy = nn.DataParallel(proxy, device_ids=[i for i in range(gpu_num)])
 
@@ -143,6 +187,15 @@ if __name__ == "__main__":
     proxy_optimizer = optim.SGD(
         proxy.parameters(),
         lr=0.01,)
+    resume_epoch = 0
+
+    if args.resume:
+        model, model_optimizer, proxy_optimizer, resume_epoch =\
+            resume_training(
+                args.checkpoint_path,
+                model,
+                model_optimizer,
+                proxy_optimizer)
 
     if args.attacker == 'pgd':
         attacker = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
@@ -155,29 +208,50 @@ if __name__ == "__main__":
         gamma=args.awp_gamma,)
 
     best_epoch, best_robust_acc = 0, 0.
-    for e in range(args.epoch):
+    losses = []
+    test_accs = []
+    test_robust_accs = []
+    for e in range(resume_epoch, args.epoch):
         adjust_learning_rate(model_optimizer, e)
+
+        # adv training
         train_acc, train_robust_acc, loss = train_fwawp_epoch(
-            model, perturbator, attacker, train_loader, device, model_optimizer, e)
+            model, perturbator, attacker, train_loader,
+            device, model_optimizer, e)
+
+        losses.append(loss)
+
+        # eval
         if e % 3 == 0 or (e >= 74 and e <= 80):
             test_acc, test_robust_acc, _ = eval_model_pgd(
                 model, test_loader, device,
                 args.step_size, args.epsilon, args.perturb_steps
             )
+            test_accs.append(test_acc)
+            test_robust_accs.append(test_robust_acc)
         else:
             test_acc, _ = eval_model(model,  test_loader, device)
+            test_accs.append(test_acc)
         if test_robust_acc > best_robust_acc:
             best_robust_acc, best_epoch = test_robust_acc, e
+
+        # save model
         if e > 50:
-            torch.save(
-                model.module.state_dict(),
+            torch.save({
+                'epoch': e,
+                'model': model.module.state_dict(),
+                'model_optim': model_optimizer.state_dict(),
+                'proxy_optim': proxy_optimizer.state_dict(), },
                 os.path.join(
                     log_dir,
-                    f"{model_name}-e{e}-{test_acc:.4f}_{test_robust_acc:.4f}-best.pt"
-                )
+                    f"{model_name}-e{e}-{test_acc:.4f}_{test_robust_acc:.4f}-best.pt")
             )
         log.print(f"Epoch:{e}, loss:{loss:.5f}, train_acc:{train_acc:.4f}, train_robust_acc:{train_robust_acc:.4f}, " +
                   f"test_acc:{test_acc:.4f}, test_robust_acc:{test_robust_acc:.4f}, " +
                   f"best_robust_acc:{best_robust_acc:.4f} in epoch {best_epoch}.")
-    torch.save(model.module.state_dict(
-    ), f"{log_dir}/{model_name}_e{args.epoch - 1}_{test_acc:.4f}_{test_robust_acc:.4f}-final.pt")
+    torch.save(
+        model.module.state_dict(),
+        f"{log_dir}/{model_name}_e{args.epoch - 1}_{test_acc:.4f}_{test_robust_acc:.4f}-final.pt")
+    pickle.dump(
+        [test_accs, test_robust_accs, losses],
+        open(os.path.join(log_dir, f'{model_name}_footprints.pkl')))
