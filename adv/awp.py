@@ -66,6 +66,32 @@ class AdvWeightPerturb(object):
 
         return self.diff_dict
 
+    def calc_trades_awp(
+            self,
+            x_adv: torch.Tensor,
+            x_orig: torch.Tensor,
+            y: torch.Tensor, args):
+        self.proxy.load_state_dict(self.model.state_dict())
+        self.proxy.train()
+
+        output_orig = self.proxy(x_orig)
+        output_adv = self.proxy(x_adv)
+
+        loss_orig = F.cross_entropy(output_orig, y)
+        loss_adv = F.kl_div(
+            F.log_softmax(output_adv, dim=1), F.softmax(output_orig, dim=1),
+            reduction='batchmean')
+
+        negative_loss = - 1.0 * (loss_orig + args.trades_param * loss_adv)
+
+        self.proxy_optim.zero_grad()
+        negative_loss.backward()
+        self.proxy_optim.step()
+
+        self.diff_dict = self._calc_weight_diff()
+
+        return self.diff_dict
+
     def perturb_model(self):
         self._add_pertubation(self.gamma * 1.0)
 

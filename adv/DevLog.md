@@ -14,6 +14,9 @@
 | F-W-Amp | 60.32 | 48.11 | 56.34 | 53.50 | 53.00 | 60.92 | **20/0** |
 | F-W-AdAmp | **0.00** | **47.79** | 45.00 | **53.27** | **52.35** | **60.54** | **20/0** |
 
+## Jun.02
+- Updated TRADES AWP
+
 ## May.29
 - Frank-Wolfe w/ Adversarial Weight Perturbation
   - Does not work on ResNet34
