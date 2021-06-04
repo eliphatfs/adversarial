@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import scipy.optimize as opt
 import numpy
+import sys
 
 
 class ExpAttack():
@@ -12,10 +13,11 @@ class ExpAttack():
         self.perturb_steps = perturb_steps
         self.random_start = random_start
         self.processed_model_id = None
+        print("Using Frank-Wolfe Attack. Baseline is all you need.", file=sys.stderr)
 
     def bad_krylov(self, model, x, y):
         model.eval()
-        
+
         def func(cx):
             logits = model(cx)
             # labels = torch.eye(10).to(y.device)[y]
@@ -48,10 +50,9 @@ class ExpAttack():
                 if pred[i] != y_cpu[i]:
                     results[i] = x_adv[i]
         return results
-    
+
     def __call__(self, model, x, y):
         return self.frank_wolfe(model, x, y)
-
 
     def not_so_bad_krylov(self, model, x, y):
         model.eval()
@@ -69,7 +70,9 @@ class ExpAttack():
         tg = x.flatten(1).shape[-1] ** 0.5
         b = safe_jac(x)
         krylov = [b / torch.norm(b.flatten(1), -1).reshape(-1, 1, 1, 1)]
-        batch_dot = lambda u, v: torch.bmm(u.flatten(1).unsqueeze(-2), v.flatten(1).unsqueeze(-1)).flatten(0)
+
+        def batch_dot(u, v): return torch.bmm(
+            u.flatten(1).unsqueeze(-2), v.flatten(1).unsqueeze(-1)).flatten(0)
         H = torch.zeros(
             [x.shape[0], self.perturb_steps + 1, self.perturb_steps],
             dtype=x.dtype,
@@ -123,7 +126,8 @@ class ExpAttack():
                         x_adv[i] = perturbed_sample[i]
                         removed.add(i)
                         fooled += 1
-                active_indices = [i for i in active_indices if i not in removed]
+                active_indices = [
+                    i for i in active_indices if i not in removed]
             # print(lam, fooled)
             lam *= 3 / 4
         return x_adv
@@ -142,7 +146,8 @@ class ExpAttack():
 
         x_backup = x.detach().clone()
         x_adv = x.detach() - torch.sign(safe_jac(x)) * self.epsilon
-        batch_dot = lambda u, v: torch.bmm(u.flatten(1).unsqueeze(-2), v.flatten(1).unsqueeze(-1)).flatten(0)
+        def batch_dot(u, v): return torch.bmm(
+            u.flatten(1).unsqueeze(-2), v.flatten(1).unsqueeze(-1)).flatten(0)
         for t in range(self.perturb_steps):
             d = torch.zeros_like(x_adv)
             ve = 0
@@ -150,22 +155,26 @@ class ExpAttack():
             for _ in range(self.perturb_steps):
                 r = -grad - d
                 v = x + torch.sign(r) * self.epsilon
-                dnorm = torch.norm(d.flatten(1), dim=-1).reshape(-1, 1, 1, 1) + 1e-7
+                dnorm = torch.norm(d.flatten(1), dim=-
+                                   1).reshape(-1, 1, 1, 1) + 1e-7
                 mindnorm = -d / dnorm
                 ora = (
                     batch_dot(v - x_adv, r)
                     > batch_dot(mindnorm, r)
                 ).float().reshape(-1, 1, 1, 1)
                 u = ora * (v - x_adv) + (1 - ora) * mindnorm
-                lam = batch_dot(r, u) / (1e-7 + torch.norm(u.flatten(1), dim=-1) ** 2)
+                lam = batch_dot(r, u) / \
+                    (1e-7 + torch.norm(u.flatten(1), dim=-1) ** 2)
                 dprime = d + lam.reshape(-1, 1, 1, 1) * u
                 simd = F.cosine_similarity(d.flatten(1), -grad.flatten(1))
-                simdp = F.cosine_similarity(dprime.flatten(1), -grad.flatten(1))
+                simdp = F.cosine_similarity(
+                    dprime.flatten(1), -grad.flatten(1))
                 ora2 = (simdp > simd + 1e-3).float().reshape(-1, 1, 1, 1)
                 d = ora2 * dprime + (1 - ora2) * d
                 vep = (
                     (ve + lam) * ora.reshape(-1)
-                    + (1 - ora).reshape(-1) * (ve * (1 - lam / dnorm.reshape(-1)))
+                    + (1 - ora).reshape(-1) *
+                    (ve * (1 - lam / dnorm.reshape(-1)))
                 )
                 ve = ora2.flatten() * vep + (1 - ora2).flatten() * ve
             g = d / (1e-7 + ve.reshape(-1, 1, 1, 1))
@@ -177,7 +186,7 @@ class ExpAttack():
 
     def frank_wolfe(self, model, x, y):
         model.eval()
-    
+
         def func(cx):
             logits = model(cx)  # F.softmax(model(cx), -1)
             # labels = torch.eye(10).to(y.device)[y]

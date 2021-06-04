@@ -4,13 +4,14 @@ import torch
 import torch.nn as nn
 import time
 import torch.optim as optim
-from pgd_attack import pgd_attack
-from models import ResNet18
 from tqdm import trange
 
 from eval_model import eval_model_pgd
 from utils import prepare_cifar, Logger, check_mkdir
 from eval_model import eval_model
+
+from models.resnet import ResNet34
+from experimental_attack import ExpAttack
 
 
 def parse_args():
@@ -41,7 +42,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def train_adv_epoch(model, args, train_loader, device, optimizer, epoch):
+def train_adv_epoch(model, attack, args, train_loader, device, optimizer, epoch):
     model.train()
     corrects_adv, corrects = 0, 0
     data_num = 0
@@ -51,11 +52,7 @@ def train_adv_epoch(model, args, train_loader, device, optimizer, epoch):
             x, y = data.to(device), target.to(device)
             data_num += x.shape[0]
             optimizer.zero_grad()
-            x_adv = pgd_attack(
-                model, x, y, args.step_size,
-                args.epsilon, args.perturb_steps,
-                random_start=0.001, distance='l_inf'
-            )
+            x_adv = attack(model, x, y)
             model.train()
             output_adv = model(x_adv)
             loss = nn.CrossEntropyLoss()(output_adv, y)
@@ -97,7 +94,7 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     gpu_num = max(len(args.gpu_id.split(',')), 1)
 
-    model_name = 'resnet18'
+    model_name = 'resnet34'
     log_dir = "logs/%s_%s" % (time.strftime("%b%d-%H%M",
                                             time.localtime()), model_name)
     check_mkdir(log_dir)
@@ -105,7 +102,7 @@ if __name__ == "__main__":
     log.print(args)
 
     device = torch.device('cuda')
-    model = ResNet18().to(device)
+    model = ResNet34().to(device)
     model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
 
     train_loader, test_loader = prepare_cifar(
@@ -115,11 +112,13 @@ if __name__ == "__main__":
                           momentum=args.momentum,
                           weight_decay=args.weight_decay)
 
+    attacker = ExpAttack(args.step_size, args.epsilon, args.perturb_steps)
+
     best_epoch, best_robust_acc = 0, 0.
     for e in range(args.epoch):
         adjust_learning_rate(optimizer, e)
         train_acc, train_robust_acc, loss = train_adv_epoch(
-            model, args, train_loader, device,  optimizer, e)
+            model, attacker, args, train_loader, device,  optimizer, e)
         if e % 3 == 0 or (e >= 74 and e <= 80):
             test_acc, test_robust_acc, _ = eval_model_pgd(
                 model, test_loader, device,
