@@ -1,0 +1,45 @@
+\documentclass{article}
+\usepackage{homework}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{arrows}
+\usepackage[ruled, vlined]{algorithm2e} % 算法与伪代码
+
+\newtheorem{fact}{Fact}
+
+\title{Baseline is All You Need: the Story of Failing to Outperform Project Baselines}
+\author{RealEEMan \quad RealEEMan's 大腿挂件}
+\date{}
+
+\begin{document}
+\maketitle
+\section{Introduction}\label{Sec:Intro}
+In this work, we detail our struggle of trying and eventually failing to do better than the baselines provided by our TA.
+
+\section{Related Work}\label{Sec:RelatedWork}
+Most of these work did far better than us. Their works were based on comprehensive research into adversarial models and sound mathematical 
+
+\section{Frank-Wolfe Defenses}\label{Sec:DefenseMethodology}
+We had little ideas on adversarial defenses.
+
+At the beginning, we wanted to exploit Variational Auto Encoders (VAE) to enhance input continuity, and hoped that a more continuous input space would boost model robustness. Unfortunately, training a VAE turned out to be one of the world's best time-wasting torture. To the best of our knowledge, it was second only to compiling and running Kaldi. Worse still, the not-properly-trained VAE refused to produce anything useful, so we got stuck.
+
+\section{Results}\label{Sec:Results}
+Let me see what my code outputs.
+
+\verb|TypeError: NoneType is not callable.|
+
+\verb|MemoryError: Unable to allocate 11.3 TiB|
+
+\verb|Process killed.|
+
+\verb|#15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized.|
+
+\section{Conclusion}\label{Sec:Conclusion}
+\begin{fact}[Fundamental Theorem of AI2612]
+    \label{Fact:FundamentalFactOfAI2612}
+    Baseline is all you need.
+\end{fact}
+It follows from Fact \ref{Fact:FundamentalFactOfAI2612} immediately that the baselines are the real state-of-the-art's, and that this project can be done by simply cloning a baseline. We are weak.
+
+\end{document}

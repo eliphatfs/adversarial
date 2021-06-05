@@ -109,7 +109,7 @@ def train_fwawp_epoch(
                 optimizer.step()
             else:
                 # use TRADE loss
-                if epoch == 0:
+                if epoch == 0 and batch_idx == 0:
                     print("Using TRADES loss.", file=sys.stderr)
                 output_orig = model(x)
                 output_adv = model(x_adv)
