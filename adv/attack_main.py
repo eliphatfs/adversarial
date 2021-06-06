@@ -23,12 +23,13 @@ from eval_model import eval_model_with_attack
 from arch_transfer_attack import ArchTransferAttack
 import argparse
 from barrier_attack import BarrierMethodAttack
+from niyf import NIYFModel
 import vgg
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
-    parser.add_argument('--batch-size', type=int, default=128, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('--step_size', type=int, default=0.003,
                         help='step size for pgd attack(default:0.003)')
@@ -36,12 +37,12 @@ def parse_args():
                         help='max distance for pgd attack (default: 8/255)')
     parser.add_argument('--perturb_steps', type=int, default=20,
                         help='iterations for pgd attack (default pgd20)')
-    parser.add_argument('--model_name', type=str, default="model6")
+    parser.add_argument('--model_name', type=str, default="")
     parser.add_argument(
         '--model_path', type=str,
         default="./models/weights/model-wideres-pgdHE-wide10.pt"
     )
-    parser.add_argument('--device', type=str, default="cuda:0")
+    parser.add_argument('--device', type=str, default="cuda:1")
     return parser.parse_args()
 
 
@@ -86,30 +87,32 @@ if __name__ == '__main__':
         # 根据model_name, 切换要攻击的model
     else:
         # 防御任务, Change to your model here
-        model = vgg.vgg13_bn().to(device)
-        ensemble = torch.load('vgg13bn_regm1.dat', map_location=torch.device(device))
+        model = get_model_for_attack('model6').to(device)
+        # model = vgg.vgg13_bn().to(device)
+        # ensemble = torch.load('vgg13bn_regm1.dat', map_location=torch.device(device))
         '''for i in range(1, 7):
             ensemble = merge_state_dicts([
                 ensemble,
                 torch.load('vgg13bn_regm%d.dat' % i, map_location=torch.device(device))
             ])
         ensemble = divide_state_dict(ensemble, 7)'''
-        model.load_state_dict(ensemble)
+        model = NIYFModel(model)
+        # model.load_state_dict(ensemble)
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
     # model = nn.DataParallel(model, device_ids=[0, 4, 6, 7])
-    attack = ExpAttack(args.step_size, args.epsilon, args.perturb_steps)
+    attack = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
     test_loader = get_test_cifar(args.batch_size)
-    # natural_acc, robust_acc, distance = eval_model_with_attack(
-    #     model, test_loader, attack, args.epsilon, device)
-    # <!-- Attack Method Changed for adamp statistic countings -->
-    ce_pure, ce_lost, adamp_pure, adamp_lost = attack_and_analyze_stats(
+    natural_acc, robust_acc, distance = eval_model_with_attack(
         model, test_loader, attack, args.epsilon, device)
-    # print(
-    #     "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
-    #     (natural_acc, robust_acc, distance)
-    # )
-    pickle.dump(
+    # <!-- Attack Method Changed for adamp statistic countings -->
+    '''ce_pure, ce_lost, adamp_pure, adamp_lost = attack_and_analyze_stats(
+        model, test_loader, attack, args.epsilon, device)'''
+    print(
+        "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
+        (natural_acc, robust_acc, distance)
+    )
+    '''pickle.dump(
         [ce_pure, ce_lost, adamp_pure, adamp_lost],
-        open('track_lost.pkl', 'wb'))
+        open('track_lost.pkl', 'wb'))'''

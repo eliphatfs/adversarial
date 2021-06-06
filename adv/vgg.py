@@ -31,10 +31,25 @@ class AccumulateNorm(nn.Module):
         return x
 
 
-class Saturation(nn.Module):
+class PWLU(nn.ReLU):
+    """
+    def __init__(self):
+        super().__init__()
+        self.mean = 0.0
+        self.small = 0.0
 
     def forward(self, x):
-        return torch.log(1 + x)
+        v = super().forward(x)
+        if self.training:
+            with torch.no_grad():
+                batch_large = v.max(0)[0]
+                batch_small = x.min(0)[0]
+                self.mean = self.mean * 0.995 + 0.005 * batch_large
+                self.small = self.small * 0.995 + 0.005 * batch_small
+            return v
+        return (x < self.small).float() * self.mean\
+             + (x < self.mean).float() * (x > self.small).float() * v
+    """
 
 
 class VGG(nn.Module):
@@ -49,12 +64,10 @@ class VGG(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(512 * 1 * 1, 4096),
             # nn.Linear(512 * 7 * 7, 4096),
-            nn.ReLU(True),
-            Saturation(),
+            PWLU(),
             nn.Dropout(),
             nn.Linear(4096, 4096),
-            nn.ReLU(True),
-            Saturation(),
+            PWLU(),
             nn.Dropout(),
             nn.Linear(4096, num_classes),
         )
@@ -69,6 +82,7 @@ class VGG(nn.Module):
         return x
 
     def _initialize_weights(self):
+        return
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
@@ -91,9 +105,9 @@ def make_layers(cfg, normacc, batch_norm=False):
         else:
             conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
             if batch_norm:
-                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True), Saturation()]
+                layers += [conv2d, nn.BatchNorm2d(v), PWLU()]
             else:
-                layers += [conv2d, nn.ReLU(inplace=True), Saturation()]
+                layers += [conv2d, PWLU()]
             in_channels = v
     return nn.Sequential(*layers)
 
