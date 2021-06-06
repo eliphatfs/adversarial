@@ -15,9 +15,9 @@ from eval_model import eval_model
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
-    parser.add_argument('--batch-size', type=int, default=1024, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=300, metavar='N',
                         help='input batch size for training (default: 128)')
-    parser.add_argument('--test_batch_size', type=int, default=512, metavar='N',
+    parser.add_argument('--test_batch_size', type=int, default=500, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('--step_size', type=int, default=0.007,
                         help='step size for pgd attack(default:0.03)')

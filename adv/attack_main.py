@@ -27,12 +27,13 @@ from eval_model import eval_model_with_attack
 from arch_transfer_attack import ArchTransferAttack
 import argparse
 from barrier_attack import BarrierMethodAttack
+from niyf import NIYFModel
 import vgg
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
-    parser.add_argument('--batch-size', type=int, default=128, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('--step_size', type=int, default=0.003,
                         help='step size for pgd attack(default:0.003)')
@@ -105,15 +106,15 @@ if __name__ == '__main__':
         attack = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
     test_loader = get_test_cifar(args.batch_size)
-    # natural_acc, robust_acc, distance = eval_model_with_attack(
-    #     model, test_loader, attack, args.epsilon, device)
-    # <!-- Attack Method Changed for adamp statistic countings -->
-    ce_pure, ce_lost, adamp_pure, adamp_lost = attack_and_analyze_stats(
+    natural_acc, robust_acc, distance = eval_model_with_attack(
         model, test_loader, attack, args.epsilon, device)
-    # print(
-    #     "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
-    #     (natural_acc, robust_acc, distance)
-    # )
-    pickle.dump(
+    # <!-- Attack Method Changed for adamp statistic countings -->
+    '''ce_pure, ce_lost, adamp_pure, adamp_lost = attack_and_analyze_stats(
+        model, test_loader, attack, args.epsilon, device)'''
+    print(
+        "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
+        (natural_acc, robust_acc, distance)
+    )
+    '''pickle.dump(
         [ce_pure, ce_lost, adamp_pure, adamp_lost],
-        open('track_lost.pkl', 'wb'))
+        open('track_lost.pkl', 'wb'))'''
