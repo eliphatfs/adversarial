@@ -1,0 +1,45 @@
+\documentclass{paper}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+
+\title{Adaptive Amplification}
+\author{Buggy}
+\date{June 2021}
+
+\begin{document}
+
+\maketitle
+
+\section{Adaptive Amplification}
+Cross-entropy measures the distributional distance between model prediction and ground truth. It is suitable as a loss for classification task, and is widely adopted in the training process of artificial neural networks.
+
+On the other hand, regular softmax cross-entropy does not necessarily reflect well on the success of classification, especially in the case where top-k classes have similar predicted logits. This case is quite common during iterations of adversaries.
+
+We thus proposed Adaptive Amplification. It is applied to obtain a better target function in place of the regular softmax cross-entropy for adversarial attacks.
+
+\paragraph{Amplifying the Difference} The softmax distribution is invariant upon additive constants. Only the relative difference between the pre-activation logits affects the distribution ($\Delta$ is used to indicate the invariance). We consider amplifying the difference: instead of
+\newcommand{\vdz}{\Delta \mathbf{z}}
+\begin{equation}
+    \sigma(\vdz)_i = \frac{e^{\vdz_i}}{\sum e^{\vdz}_j},
+\end{equation}
+we consider pre-multiplying by a factor of $w$
+\begin{equation}
+    \sigma_w(\vdz)_i = \frac{e^{w\vdz_i}}{\sum e^{w\vdz_j}}.
+\end{equation}
+When $w > 1$ this greatly amplifies the difference between classes, which makes finding adversarial examples close to the decision boundary easier. (See Fig.\ \ref{fig:softmax_preamp})
+
+\begin{figure}[ht]
+    \label{fig:softmax_preamp}
+    \centering
+    \includegraphics[width=0.5\linewidth]{bin_amp_geo.pdf}
+    \caption{\textbf{Geometry of binary softmax cross-entropy after amplification.} Application of different amplification factors $w$ on binary softmax cross-entropy are shown. It can be seen that large $w$'s significantly amplify difference between classes. ($w = 1$ means regular softmax cross-entropy.}
+    \label{fig:my_label}
+\end{figure}
+
+\section*{Appendix: A Krylov Subspace Analysis Method}
+
+The attack based on this analysis is not working well due to the poor approximation of quadratic functions towards neural networks. However, the analysis itself stays interesting, and we thus supply the method in the appendix.
+
+The section is currently pigeoned. Stay tuned.
+
+\end{document}
