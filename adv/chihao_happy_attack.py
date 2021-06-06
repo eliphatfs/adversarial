@@ -7,13 +7,13 @@ class ChihaoHappyAttack():
                  random_start=None):
         self.step_size = step_size
         self.epsilon = epsilon
-        self.perturb_steps = perturb_steps * 10
+        self.perturb_steps = perturb_steps * 100
         self.random_start = random_start
 
     def __call__(self, model, x, y):
         model.eval()
-        x_adv = x.detach()
-        succeeded_attacks = x.detach()
+        x_adv = x.detach().clone()
+        succeeded_attacks = x.detach().clone()
         for i in range(self.perturb_steps):
             pertub = torch.sign(torch.randn_like(x_adv))
             x_adv = x_adv.detach() + pertub.detach()

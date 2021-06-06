@@ -32,6 +32,13 @@ class AccumulateNorm(nn.Module):
 
 
 class PWLU(nn.ReLU):
+    def __init__(self):
+        super().__init__()
+        self.v = 1.0
+
+    def forward(self, x):
+        self.v = self.v + 0.0001
+        return torch.sin(self.v * x)
     """
     def __init__(self):
         super().__init__()

@@ -48,8 +48,8 @@ def get_test_cifar(batch_size):
 def prepare_cifar(batch_size, test_batch_size):
     kwargs = {'num_workers': 8, 'pin_memory': True}
     transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
+        # transforms.RandomCrop(32, padding=4),
+        # transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
     ])
     transform_test = transforms.Compose([
