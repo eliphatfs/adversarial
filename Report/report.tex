@@ -83,16 +83,16 @@
                 \centering
                 \begin{tabular}{cccccc}
                     \hline
-                    Models                         & Loss   & Time      & Natural & PGD20 & FW \\ \hline
-                    \multirow{2}{*}{ResNet18}      & AT     & 6.06 hrs  & 79.48   & 55.96 &    \\
-                                                   & TRADES & 7.01 hrs  & 78.35   & 55.83 &    \\ \hline
-                    \multirow{2}{*}{Wide ResNet28} & AT     & 25.61 hrs & 88.48   & 59.55 &    \\
-                                                   & TRADES &           &         &       &    \\ \hline
-                    ResNet34                       & AT     & 10.38 hrs & 84.36   & 57.84 &    \\ \hline
-                    PreAct ResNet18                & AT     & 5.92 hrs  & 82.40   & 55.88 &    \\ \hline
-                    PreAct ResNet34                & AT     & 10.34 hrs & 84.71   & 58.08 &    \\ \hline
+                    Models                         & Loss   & Time      & Natural & PGD20 &  FW  \\ \hline
+                    \multirow{2}{*}{ResNet18}      & AT     & 6.06 hrs  & 79.48 & 55.88 & 49.98 \\
+                                                   & TRADES & 7.01 hrs  & 78.35 & 55.93 & 49.04 \\ \hline
+                    \multirow{2}{*}{Wide ResNet28} & AT     & 25.61 hrs & \textbf{84.75} & 59.39 & \textbf{55.34} \\
+                                                   & TRADES & 29.82 hrs & 82.17 & \textbf{60.02} & 53.65 \\ \hline
+                    ResNet34                       & AT     & 10.38 hrs & 81.74 & 57.99 & 52.91 \\ \hline
+                    PreAct ResNet18                & AT     & 5.92 hrs  & 80.41 & 55.76 & 50.14 \\ \hline
+                    PreAct ResNet34                & AT     & 10.34 hrs & 81.86 & 57.90 & 53.80 \\ \hline
                 \end{tabular}
-                \caption{Benchmarking results of different models trained with Frank-Wolfe method, under PGD20 and Frank-Wolfe attack.}
+                \caption{Benchmarking results of different models trained with Frank-Wolfe method with AWP, under PGD20 and Frank-Wolfe-20 attack. Evaluation is run on test set of CIFAR-10. Models use weights of their \emph{best} epoch.}
                 \label{table:DefenseBenchmarkingResults}
             \end{table}
             Table \ref{table:DefenseBenchmarkingResults} reports the total training time and accuracy of different models, under both PGD20 attack and proposed Frank-Wolfe Attack with AWP.
