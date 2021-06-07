@@ -27,7 +27,7 @@ class FWAdampAttackPlus():
     def frank_wolfe(self, model, x, y):
         model.eval()
 
-        x_adv = x.detach() - torch.sign(self.safe_jac(model, x, y)) * self.epsilon
+        x_adv = x.detach()
         for k in range(self.perturb_steps):
             safe_jac = self.safe_jac(model, x_adv, y)
             s = x + torch.sign(safe_jac) * self.epsilon
