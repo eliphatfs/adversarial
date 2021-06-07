@@ -18,7 +18,7 @@
 \section{Related Work}\label{sec:RelatedWork}
     To cope with security risks posed by adversarial examples, many novel defensive methods have been proposed, including adversarial training, hypersphere embedding and gradient obfuscation. (However, gradient obfuscation proves to be vulnerable under specifically-designed attacks.)
 
-    We detail two new related techniques in adversarial defense.
+    We detail two related major techniques in adversarial defense.
     \paragraph{TRADES.} TRADES modifies the cross-entropy loss in adversarial training to achieve a trade-off between accuracy and model robustness.
     \begin{equation}\label{eq:trades}
         \min_{\mathbf{w}} \frac{1}{n}\sum_{i=1}^n \left( \mathcal{L}_{CE}\left( f_{\mathbf{w}}(\mathbf{x}_i), y_i \right) + \mathcal{L}_{KL}\left(f_{\mathbf{w}}(\mathbf{x}_i), f_{\mathbf{w}}(\mathbf{x}_i^{adv})\right) \right)
@@ -33,23 +33,56 @@
  
 
 \section{Frank-Wolfe Attack}\label{sec:AttackMethodology}
+    \subsection{Adaptive Amplification}
+        Cross-entropy measures the distributional distance between model prediction and ground truth. It is suitable as a loss for classification task, and is widely adopted in the training process of artificial neural networks.
 
+        On the other hand, regular softmax cross-entropy does not necessarily reflect well on the success of classification, especially in the case where top-k classes have similar predicted logits. This case is quite common during iterations of adversaries.
 
-\section{FW-based Defense}\label{sec:DefenseMethodology}
-    In this section, we detail our design of adversarial defense. Since we fail to come up with innovative fancy defense ideas, we fallback to traditional adversarial training approaches, and incorporated our proposed Frank-Wolfe methods into adversarial training.
+        We thus proposed Adaptive Amplification. It is applied to obtain a better target function in place of the regular softmax cross-entropy for adversarial attacks.
+
+        \paragraph{Amplifying the Difference} The softmax distribution is invariant upon additive constants. Only the relative difference between the pre-activation logits affects the distribution ($\Delta$ is used to indicate the invariance). We consider amplifying the difference: instead of
+        \newcommand{\vdz}{\Delta \mathbf{z}}
+        \begin{equation}
+            \sigma(\vdz)_i = \frac{e^{\vdz_i}}{\sum e^{\vdz}_j},
+        \end{equation}
+        we consider pre-multiplying by a factor of $w$
+        \begin{equation}
+            \sigma_w(\vdz)_i = \frac{e^{w\vdz_i}}{\sum e^{w\vdz_j}}.
+        \end{equation}
+        When $w > 1$ this greatly amplifies the difference between classes, which makes finding adversarial examples close to the decision boundary easier (See Fig.\ \ref{fig:softmax_preamp}).
+
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=0.5\linewidth]{figs/bin_amp_geo.pdf}
+            \caption{\textbf{Geometry of binary softmax cross-entropy after amplification.} Application of different amplification factors $w$ on binary softmax cross-entropy are shown. It can be seen that large $w$'s significantly amplify difference between classes. $w = 1$ means regular softmax cross-entropy.}
+            \label{fig:softmax_preamp}
+        \end{figure}
+
+        \paragraph{Adaptive Amplification} Theoretically, an amplification factor $w \to +\infty$ is best suited for the application since the target function approaches classification correctness at the limit. However, the gradient may numerically vanish if $\vdz$ is amplified to a large value. So we need to choose $w$ carefully. Conversely, if the original model outputs a large $\vdz$ which cause the gradient to vanish for a regular cross-entropy, we may be willing to apply a $w < 1$ to let useful gradient information in.
+
+        Since differentiation is a linear operator, we may sum up values at different $w$'s. Since we are still willing to approximate the classification correctness as well as we can do, we give larger weights to larger $w$'s. The final loss function is
+        \begin{equation}
+            \mathcal{L}(\vdz) = \sum_{w \in W} w^2 H(\sigma_w(\vdz), y_t),
+        \end{equation}
+        where $\vdz$ is the logits before activation, $H$ is cross-entropy function and $y_t$ is ground truth distribution. $W$ is a pre-defined list of possible amplification factors that typically span several orders of magnitude. In the experiments we take $W = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]$.
+
+        Note that the forward and backward passes of the entire model only needs to be performed once for the proposed target loss. There is almost no extra computational cost for Adaptive Amplification.
+
+\section{Frank-Wolfe-based Defense}\label{sec:DefenseMethodology}
+    In this section, we detail our design of adversarial defense. Since we fail to come up with fancy innovative defense ideas that works properly, we fallback to traditional adversarial training approaches, and integrate our proposed FW-AdAmp attack method with various adversarial training methods.
 
     \subsection{Frank-Wolfe Defense}
-        We utilize the proposed FW-AdAmp method and improved adversarial training by substituting FW attack for standard PGD attacks in the adversarial training process. Let $\mathbf{x}^{adv}$ denote the adversarial example generated by FW-AdAmp, then we train a robust model by solving the optimization in (\ref{eq:fwat}).
+        We utilize the FW-AdAmp method and improve adversarial training by substituting FW-AdAmp attack for standard PGD attacks in adversarial trainings. Let $\mathbf{x}^{adv}$ denote the adversarial example generated by FW-AdAmp, we then train a robust model by solving the optimization in (\ref{eq:fwat}).
         \begin{equation}\label{eq:fwat}
             \min_{\mathbf{w}} \frac{1}{n}\sum_{i=1}^n \mathcal{L}_{CE}(f_{\mathbf{w}}(\mathbf{x}^{adv}_i), y_i))
         \end{equation}
 
     \subsection{Combination with Other AT Methods}
-        FW attack can be flexibly integrated with other AT methods. In this section, we introduce the combination of our proposed FW method with AWP and TRADES.
+        FW-AdAmp attack can also be flexibly combined with other AT methods. In this section, we introduce the combination of FW-AdAmp method with AWP and TRADES.
 
-        \paragraph{Combination with Adversarial Weight Perturbation.} The role of FW attack is similar to that of a PGD attack in the AT-AWP framework proposed by Wu et al. Therefore to combine FW attack with AWP, we simply change the attack method from PGD to FW in the AT-AWP.
+        \paragraph{Combination with TRADES.} The combination with TRADES is also straightforward: it can be done by simply changing the loss from cross-entropy to TRADES loss given in (\ref{eq:trades}).
 
-        \paragraph{Combination with TRADES.} The combination with TRADES is also straightforward: by changing the loss from cross-entropy to TRADES loss given in (\ref{eq:trades}).
+        \paragraph{Combination with Adversarial Weight Perturbation.} The role of FW-AdAmp attack is similar to that of a PGD attack in the AT-AWP framework proposed by Wu et al. Therefore to combine FW-AdAmp with AWP, we simply change the attack method from PGD to FW-AdAmp in the AT-AWP framework.
 
 \section{Results}\label{sec:Results}
     \subsection{Attack}\label{subs:AttackExp}
@@ -70,11 +103,18 @@
         \end{tabular}
         \caption{Results of 6 baseline models, under various attack attempts.}
     \end{table}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{figs/ce_adamp_distribution.pdf}
+        \caption{Placeholder}
+        \label{fig:loss_distribution}
+    \end{figure}
     \subsection{Defense}\label{subs:DefenseExp}
+        In this section, we show the experiment results on our defense models.
         \subsubsection{Experiment Setup}\label{subs:DefenseExpSetup}
-            To evaluate our defense method, we train several ResNet (and its variations) models using our proposed FW defense with weight perturbation (referred to as FW-AWP in the following part). We also train ResNet-18 and Wide ResNet-34-10 using FW-AWP with TRADES loss for parallel comparision with model 6. All defense models are trained for 100 epochs, using SGD optimizer with momentum 0.9 and weight decay $5\times 10^{-4}$. We set the learning rate to 0.1, which is mutiplied by 0.1 at 75th and 90th epoch. For Adversarial Weight Perturbation, we set the parameter $\gamma$ to be $0.1$ and set a warm up of 10 epochs. For TRADES loss, we set the hyperparameter $\beta = 1/\lambda = 6.0$.
+            We train several models using FW-AdAmp w/ AWP. We also train ResNet-18 and Wide ResNet-34-10 using FW-AdAmp w/ AWP and TRADES loss. All defense models are trained for 100 epochs, using SGD optimizer with momentum 0.9 and weight decay $5\times 10^{-4}$. We set the learning rate to 0.1, which is mutiplied by 0.1 at 75th and 90th epoch. For Adversarial Weight Perturbation, we set the parameter $\gamma$ to be $0.1$ and set a warm up of 10 epochs. For TRADES loss, we set the hyperparameter $\beta = 1/\lambda = 6.0$.
 
-            We use a PGD-10 AT ResNet-18 model as our baseline. The training framework is provided by TA. The PGD used in AT has a step size of 0.007 and perturbation steps of 10. 
+            We use a PGD-10 AT ResNet-18 model as our baseline. The training pipeline is provided by the TA. The PGD used in AT has a step size of 0.007 and perturbation steps of 10. 
 
             All models are trained on 2 NVIDIA GTX 1080Ti GPUs.
 
@@ -83,20 +123,26 @@
                 \centering
                 \begin{tabular}{cccccc}
                     \hline
-                    Models                         & Loss   & Time      & Natural & PGD20 &  FW  \\ \hline
-                    \multirow{2}{*}{ResNet18}      & AT     & 6.06 hrs  & 79.48 & 55.88 & 49.98 \\
-                                                   & TRADES & 7.01 hrs  & 78.35 & 55.93 & 49.04 \\ \hline
-                    \multirow{2}{*}{Wide ResNet28} & AT     & 25.61 hrs & \textbf{84.75} & 59.39 & \textbf{55.34} \\
-                                                   & TRADES & 29.82 hrs & 82.17 & \textbf{60.02} & 53.65 \\ \hline
-                    ResNet34                       & AT     & 10.38 hrs & 81.74 & 57.99 & 52.91 \\ \hline
-                    PreAct ResNet18                & AT     & 5.92 hrs  & 80.41 & 55.76 & 50.14 \\ \hline
-                    PreAct ResNet34                & AT     & 10.34 hrs & 81.86 & 57.90 & 53.80 \\ \hline
+                    Models                         & Loss                        & Time      & Natural        & PGD20          & FW-AdAmp             \\ \hline
+                    \multirow{3}{*}{ResNet18}      & \multicolumn{1}{l}{AT(PGD)} & -         & 83.57          & 51.27          & 48.13          \\
+                                                   & AT(FW)                      & 6.06 hrs  & 79.48          & 55.88          & 49.98          \\
+                                                   & TRADES                      & 7.01 hrs  & 78.35          & 55.93          & 49.04          \\ \hline
+                    \multirow{2}{*}{Wide ResNet28} & AT(FW)                      & 25.61 hrs & \textbf{84.75} & 59.39          & \textbf{55.34} \\
+                                                   & TRADES                      & 29.82 hrs & 82.17          & \textbf{60.02} & 53.65          \\ \hline
+                    ResNet34                       & AT(FW)                      & 10.38 hrs & 81.74          & 57.99          & 52.91          \\ \hline
+                    PreAct ResNet18                & AT(FW)                      & 5.92 hrs  & 80.41          & 55.76          & 50.14          \\ \hline
+                    PreAct ResNet34                & AT(FW)                      & 10.34 hrs & 81.86          & 57.90          & 53.80          \\ \hline
                 \end{tabular}
-                \caption{Benchmarking results of different models trained with Frank-Wolfe method with AWP, under PGD20 and Frank-Wolfe-20 attack. Evaluation is run on test set of CIFAR-10. Models use weights of their \emph{best} epoch.}
+                \caption{Benchmarking different models. Except the baseline, all models are trained with FW-AdAmp w/ AWP. We use PGD and FW-AdAmp, both with 20 perturbation steps, to test robustness. Evaluation is run on the test set of CIFAR-10. Models use weights of their \emph{best} epoch.}
                 \label{table:DefenseBenchmarkingResults}
             \end{table}
-            Table \ref{table:DefenseBenchmarkingResults} reports the total training time and accuracy of different models, under both PGD20 attack and proposed Frank-Wolfe Attack with AWP.
+            Table \ref{table:DefenseBenchmarkingResults} reports the total training time and accuracy of different models, under both PGD attack and FW-AdAmp attack.
 
+            The best robust accuracy under PGD20 (60.02\%) is achieved by Wide ResNet-28, trained with FW-AdAmp w/ AWP and TRADES loss. Notice that although we use identical network architecture and similar training framework, our model is still less robust than model 6, which achives a robust accuracy of 64.34\% under PGD20. This may because model 6 uses RST pretrain and 200 training epochs.
+            
+            Using the same ResNet-18 network architecture, FW-AdAmp training (with AWP) improves robust accuracy under both attacks. The PGD10 baseline has an accuracy of 51.27\% under PGD20. Compared with the baseline, FW-AdAmp adversarial training boosts model robustness by about 4\% under PGD20 attack, and it also improves robustness under FW-AdAmp attack. This result demonstrates the advantage of FW-AdAmp for adversarial training.
+
+            To evaluate the combination of FW-AdAmp and TRADES loss, we also train ResNet-18 and Wide ResNet-28 using TRADES loss. Results suggest that TRADES loss can also bring extra improvements to model robustness.
 
 
 \section{Conclusion}\label{sec:Conclusion}

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-matplotlib.style.use('seaborn-white')
+matplotlib.style.use('seaborn')
 
 ce_pure, ce_lost, adamp_pure, adamp_lost = pickle.load(
     open('./track_lost.pkl', 'rb'))
