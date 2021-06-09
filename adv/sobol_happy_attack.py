@@ -14,9 +14,9 @@ class SobolHappyAttack():
         model.eval()
         x_adv = x.detach()
         succeeded_attacks = x.detach().clone()
-        sobol_eng = torch.quasirandom.SobolEngine(x_adv.flatten(2).shape[-1])
+        sobol_eng = torch.quasirandom.SobolEngine(x_adv.flatten(1).shape[-1])
         for i in range(self.perturb_steps):
-            pertub = torch.sign(sobol_eng.draw(3).to(x_adv.device)-0.5).reshape(*x_adv.shape[1:])
+            pertub = torch.sign(sobol_eng.draw(1).to(x_adv.device)-0.5).reshape(*x_adv.shape[1:])
             x_adv = x.detach() + pertub.detach()
             x_adv = torch.min(
                 torch.max(x_adv, x - self.epsilon), x + self.epsilon)
