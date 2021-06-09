@@ -1,4 +1,6 @@
-\documentclass{paper}
+\documentclass{article}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{homework}
 
 \title{Adaptive Amplification}
@@ -9,14 +11,38 @@
 
 \maketitle
 
-\section{Adaptive Amplification}
+\section{Frank-Wolfe: A Parameter-free Attack}
+The Frank-Wolfe algorithm \cite{frank1956algorithm} is a well known algorithm for constrained convex optimization with first order (gradient) information. It is also known as the convex combination algorithm.
+
+For the sake of briefness, the general form of the algorithm is not presented. Rather, we directly demonstrate here the version adapted for adversarial attack in $L_\infty$-norm.
+
+\begin{algorithm}[h]
+\caption{Frank-Wolfe Parameter-free Attack}
+\label{alg:FWPFA}
+\hspace*{\algorithmicindent} \textbf{Input}: model $M$, target input $x$, ground truth label $y_t$, $L_\infty$-norm bound $\epsilon$, steps limit $s$ \\
+\hspace*{\algorithmicindent} \textbf{Output}: perturbation $\Delta$
+\begin{algorithmic}[1]
+\State $\Delta \leftarrow \mathbf{0}$ 
+\For {$k = 0 \dots s - 1$}
+    \State $g^\star \leftarrow \epsilon \cdot \mathrm{sgn}\left(\nabla \mathcal{L}(M(x + \Delta), y_t)\right)$
+    \State $\alpha \leftarrow \frac{2}{k + 2}$
+    \State $\Delta \leftarrow \alpha \cdot g^\star + (1 - \alpha)\cdot\Delta$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+The algorithm tries to maximize a loss function $\mathcal{L}$ between classifier output and ground truth (For the loss we adopted see Sec.\ \ref{sec:AdAmp}). In each step, we approximate the loss with a linear function via gradient information at current perturbed input, and solve for the optima $g^\star$ within the $L_\infty$ norm bound in the resulting approximation (line 3). A decaying combination factor $\alpha$ is computed (line 4) and the perturbation is updated with a convex combination between $g^\star$ and the result at the previous step (line 5).
+
+For any convex target constrained on a convex compact set, the convergence rate is guaranteed to be at least $O(1/k)$, where $k$ is number of steps performed, according to primal-dual analysis presented in \cite{jaggi2013revisiting}. The attack provides in general a good amount of attack strength without the need of intensively adjusting the parameters, such as step size of the PGD attack.
+
+\section{Adaptive Amplification} \label{sec:AdAmp}
 Cross-entropy measures the distributional distance between model prediction and ground truth. It is suitable as a loss for classification task, and is widely adopted in the training process of artificial neural networks.
 
 On the other hand, regular softmax cross-entropy does not necessarily reflect well on the success of classification, especially in the case where top-k classes have similar predicted logits. This case is quite common during iterations of adversaries.
 
 We thus proposed Adaptive Amplification. It is applied to obtain a better target function in place of the regular softmax cross-entropy for adversarial attacks.
 
-\paragraph{Amplifying the Difference} The softmax distribution is invariant upon additive constants. Only the relative difference between the pre-activation logits affects the distribution ($\Delta$ is used to indicate the invariance). We consider amplifying the difference: instead of
+\paragraph{Amplifying the Difference} The softmax distribution is invariant upon additive constants. Thus, only the relative difference between the pre-activation logits affects the distribution ($\Delta$ is used to indicate the invariance). We consider amplifying the difference: instead of
 \newcommand{\vdz}{\Delta \mathbf{z}}
 \begin{equation}
     \sigma(\vdz)_i = \frac{e^{\vdz_i}}{\sum e^{\vdz}_j},
@@ -25,11 +51,11 @@ we consider pre-multiplying by a factor of $w$
 \begin{equation}
     \sigma_w(\vdz)_i = \frac{e^{w\vdz_i}}{\sum e^{w\vdz_j}}.
 \end{equation}
-When $w > 1$ this greatly amplifies the difference between classes, which makes finding adversarial examples close to the decision boundary easier (See Fig.\ \ref{fig:softmax_preamp}).
+When $w > 1$ this greatly amplifies the difference between classes. Since we the target is to find wrongly classified examples through gradient, the closer the target loss geometry is to the `hard' classification decision boundary the better information the gradient will provide us. The amplification procedure thus makes finding adversarial examples close to the decision boundary easier (See Fig.\ \ref{fig:softmax_preamp}).
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.5\linewidth]{bin_amp_geo.pdf}
+    \includegraphics[width=0.5\linewidth]{figs/bin_amp_geo.pdf}
     \caption{\textbf{Geometry of binary softmax cross-entropy after amplification.} Application of different amplification factors $w$ on binary softmax cross-entropy are shown. It can be seen that large $w$'s significantly amplify difference between classes. $w = 1$ means regular softmax cross-entropy.}
     \label{fig:softmax_preamp}
 \end{figure}
@@ -49,5 +75,11 @@ Note that the forward and backward passes of the entire model only needs to be p
 The attack based on this analysis is not working well due to the poor approximation of quadratic functions towards neural networks. However, the analysis itself stays interesting, and we thus supply the method in the appendix.
 
 The section is currently pigeoned. Stay tuned.
+
+\newpage
+{\small
+\bibliographystyle{plain}
+\bibliography{refs}
+}
 
 \end{document}
