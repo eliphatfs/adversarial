@@ -22,7 +22,7 @@ class BarrierMethodAttack:
         for p in model.parameters():
             p.requires_grad = False
         adv = P(x.detach().clone()).to(x.device)
-        opt = optim.LBFGS(adv.parameters(), line_search_fn='strong_wolfe')
+        opt = optim.LBFGS(adv.parameters(), line_search_fn=None)
         t = 1
 
         def closure():

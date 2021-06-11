@@ -1,4 +1,5 @@
 import numpy
+import torch
 import torch.nn.functional as F
 import scipy.optimize as opt
 
@@ -13,31 +14,6 @@ class BetterSecondOrderAttack():
 
     def __call__(self, model, x, y):
         model.eval()
-        import torch.jit
-        tmod = torch.jit.trace(model, x)
-        del tmod.training
-        tmod.eval()
-        tmod = torch.jit.freeze(tmod)
-        code, consts = tmod.code_with_constants
-        print()
-        print(code)
-        print(consts.const_mapping.keys())
-        # print(consts.c123)
-
-        with torch.no_grad():
-            def fn(cx): return torch.trace(model(cx)[..., y])
-            fn_orig = fn(x)
-            print("O", fn_orig)
-            tries = []
-            for _ in range(50):
-                ap = torch.sign(torch.randn_like(x)) * self.epsilon
-                d1 = fn(x + ap * 0.5) - fn_orig
-                d2 = fn(x + ap) - fn_orig
-                # print("D1", d1)
-                # print("D2", d2)
-                tries.append(abs(d2 / (2 * d1)).item())
-            print("Max", numpy.max(tries), "Min", numpy.min(
-                tries), "Mean", numpy.mean(tries))
 
         def minimized(cz):
             return torch.trace(F.softmax(model(cz), -1)[..., y])
