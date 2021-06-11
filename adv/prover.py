@@ -52,9 +52,11 @@ class ProofOps:
         training, momentum, eps,
         cudnn_en
     ):
-        assert len(dom.head.shape) == 4, 'batch_norm is only implemented for 2d data currently.'
+        assert len(
+            dom.head.shape) == 4, 'batch_norm is only implemented for 2d data currently.'
         zero_mean = dom - running_mean.unsqueeze(-1).unsqueeze(-1)
-        normalized = zero_mean / (running_var.unsqueeze(-1).unsqueeze(-1) + eps).sqrt()
+        normalized = zero_mean / \
+            (running_var.unsqueeze(-1).unsqueeze(-1) + eps).sqrt()
         return normalized * weight.unsqueeze(-1).unsqueeze(-1) + bias.unsqueeze(-1).unsqueeze(-1)
 
     def avg_pool2d(

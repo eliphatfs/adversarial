@@ -1,13 +1,5 @@
 import torch
 import torch.optim
-import torch.nn as nn
-import torch.nn.functional as F
-
-
-class P(nn.Module):
-    def __init__(self, x_adv):
-        super().__init__()
-        self.params = nn.Parameter(x_adv)
 
 
 class DeepFoolAttack():
@@ -56,8 +48,7 @@ class DeepFoolAttack():
                     torch.linalg.norm(w_argmin.flatten(), 1)
 
                 pertubed_sample = sample + self.step_size * torch.sign(pertub)
-                pertubed_sample = torch.min(
-                    torch.max(pertubed_sample, x_cpu[idx] - self.epsilon), x_cpu[idx] + self.epsilon)
+                pertubed_sample = torch.min(torch.max(pertubed_sample, x_cpu[idx] - self.epsilon), x_cpu[idx] + self.epsilon)
                 pertubed_sample = torch.clamp(pertubed_sample, 0.0, 1.0)
 
                 x_adv[idx] = pertubed_sample.to(x_adv.device)
@@ -68,5 +59,4 @@ class DeepFoolAttack():
                 if ypr == ytr
             ]
 
-        print("#### Attack finished. l-inf Norm: {:.5f}".format(torch.linalg.norm((x - x_adv).flatten(), float('inf')).item()))
         return x_adv

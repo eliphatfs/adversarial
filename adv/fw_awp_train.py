@@ -1,11 +1,11 @@
 import os
 import sys
+import time
 import pickle
 import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import time
 import torch.optim as optim
 from tqdm import trange
 
@@ -13,53 +13,81 @@ from eval_model import eval_model_pgd
 from utils import prepare_cifar, Logger, check_mkdir
 from eval_model import eval_model
 from models.resnet import ResNet34, ResNet18
-from models.preactresnet import PreActResNet18, PreActResNet34
-from models.trades_wide_resnet import WideResNet28, WideResNet34
-from experimental_attack import ExpAttack
-from pgd_attack import PGDAttack
+from models import PreActResNet18, PreActResNet34
+from models import WideResNet28, WideResNet34
+from attack import FWAdampAttackPlus
+from attack import PGDAttack
+# from attack import FWAdampAttack
 from awp import AdvWeightPerturb
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Test Robust Accuracy')
-    parser.add_argument('--batch-size', type=int, default=1024, metavar='N',
-                        help='input batch size for training (default: 128)')
-    parser.add_argument('--test_batch_size', type=int, default=512, metavar='N',
-                        help='input batch size for training (default: 128)')
-    parser.add_argument('--step_size', type=float, default=0.007,
-                        help='step size for pgd attack(default:0.007)')
-    parser.add_argument('--perturb_steps', type=int, default=10,
-                        help='iterations for pgd attack (default pgd20)')
-    parser.add_argument('--epsilon', type=float, default=8./255.,
-                        help='max distance for pgd attack (default: 8/255)')
-    parser.add_argument('--lr', type=float, default=0.1,
-                        help='iterations for pgd attack (default pgd20)')
-    # parser.add_argument('--lr_steps', type=str, default=,
-    #                help='iterations for pgd attack (default pgd20)')
-    parser.add_argument('--epoch', type=int, default=100,
-                        help='epochs for pgd training ')
-    parser.add_argument('--momentum', type=float, default=0.9,
-                        help='iterations for pgd attack (default pgd20)')
-    parser.add_argument('--weight_decay', type=float, default=5e-4,
-                        help='weight decay ratio')
-    parser.add_argument('--adv_train', type=int, default=1,
-                        help='If use adversarial training')
-    parser.add_argument('--gpu_id', type=str, default="0,1")
-    parser.add_argument('--awp_gamma', type=float, default=0.01)
-    parser.add_argument('--awp_warmup', type=int, default=0)
-    parser.add_argument('--attacker', choices=['pgd', 'fw'], default='pgd')
+    parser = argparse.ArgumentParser(description='AT using PGD or FW-AdAmp')
+    parser.add_argument(
+        '--batch_size', type=int, default=128, metavar='N',
+        help='input batch size for training (default: 128)')
+    parser.add_argument(
+        '--test_batch_size', type=int, default=128, metavar='N',
+        help='input batch size for testing (default: 128)')
+    parser.add_argument(
+        '--step_size', type=float, default=0.007,
+        help='step size for pgd attack(default:0.007)')
+    parser.add_argument(
+        '--perturb_steps', type=int, default=10,
+        help='iterations for pgd attack (default pgd10)')
+    parser.add_argument(
+        '--epsilon', type=float, default=8./255.,
+        help='max distance for pgd attack (default: 8/255)')
+    parser.add_argument(
+        '--lr', type=float, default=0.1,
+        help='learning rate (default 0.1)')
+    parser.add_argument(
+        '--epoch', type=int, default=100,
+        help='epochs for adversarial training (default 100)')
+    parser.add_argument(
+        '--momentum', type=float, default=0.9,
+        help='momentum for SGD optimizer (default 0.9)')
+    parser.add_argument(
+        '--weight_decay', type=float, default=5e-4,
+        help='weight decay ratio (default 5e-4)')
+    parser.add_argument(
+        '--adv_train', type=int, default=1,
+        help='whether to use adversarial training')
+    parser.add_argument(
+        '--gpu_id', type=str, default="0,1",
+        help='GPU device id (default: 0,1')
+    parser.add_argument(
+        '--awp_gamma', type=float, default=0.01,
+        help='parameter gamma for AWP (default 0.01)')
+    parser.add_argument(
+        '--awp_warmup', type=int, default=0,
+        help='Warmup epochs before applying AWP')
+    parser.add_argument(
+        '--attacker', choices=['pgd', 'fw'], default='pgd',
+        help='attacker for AT (default pgd)')
     parser.add_argument(
         '--model',
         choices=['ResNet18', 'PreActResNet18',
                  'ResNet34', 'PreActResNet34', 'WideResNet28'],
         default='ResNet18')
-    parser.add_argument('--model_name', default='fwawp-resnet')
-    parser.add_argument('--resume', type=bool, default=False)
-    parser.add_argument('--checkpoint_path', default='./pretrained/ckpt.pt')
-    parser.add_argument('--checkpoint_start', type=int, default=50)
-    parser.add_argument('--trades', type=bool, default=False)
-    parser.add_argument('--trades_param', type=float,
-                        default=6.0)  # 1/lambda in TRADES
+    parser.add_argument(
+        '--model_name', default='myModel',
+        help='name for model, used in logging')
+    parser.add_argument(
+        '--resume', type=bool, default=False,
+        help='whether to resume training or start a new one.')
+    parser.add_argument(
+        '--checkpoint_path', default='./pretrained/ckpt.pt',
+        help='used when --resume=True, path to model checkpoint')
+    parser.add_argument(
+        '--checkpoint_start', type=int, default=50,
+        help='epoch to start saving checkpoints (default 50)')
+    parser.add_argument(
+        '--trades', type=bool, default=False,
+        help='whether to use TRADES loss or standard CE loss')
+    parser.add_argument(
+        '--trades_param', type=float, default=6.0,
+        help='1/gamma in TRADES loss: regularization factor (default 6.0)')  # 1/lambda in TRADES
     return parser.parse_args()
 
 
@@ -212,8 +240,8 @@ if __name__ == "__main__":
 
     device = torch.device('cuda')
     model, proxy = get_model(args.model, device)
-    model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
-    proxy = nn.DataParallel(proxy, device_ids=[i for i in range(gpu_num)])
+    model = nn.DataParallel(model, device_ids=[0])
+    proxy = nn.DataParallel(proxy, device_ids=[0])
 
     train_loader, test_loader = prepare_cifar(
         args.batch_size, args.test_batch_size)
@@ -238,7 +266,10 @@ if __name__ == "__main__":
     if args.attacker == 'pgd':
         attacker = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
     else:
-        attacker = ExpAttack(args.step_size, args.epsilon, args.perturb_steps)
+        attacker = FWAdampAttackPlus(
+            args.step_size,
+            args.epsilon,
+            args.perturb_steps,)
     perturbator = AdvWeightPerturb(
         model=model,
         proxy=proxy,

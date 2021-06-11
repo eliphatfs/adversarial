@@ -1,0 +1,31 @@
+\begin{thebibliography}{1}
+
+\bibitem{pang2020boosting}
+T.~Pang, X.~Yang, Y.~Dong, K.~Xu, J.~Zhu, and H.~Su, ``Boosting adversarial
+  training with hypersphere embedding,'' {\em arXiv preprint arXiv:2002.08619},
+  2020.
+
+\bibitem{athalye2018obfuscated}
+A.~Athalye, N.~Carlini, and D.~Wagner, ``Obfuscated gradients give a false
+  sense of security: Circumventing defenses to adversarial examples,'' in {\em
+  International Conference on Machine Learning}, pp.~274--283, PMLR, 2018.
+
+\bibitem{zhang2019theoretically}
+H.~Zhang, Y.~Yu, J.~Jiao, E.~Xing, L.~El~Ghaoui, and M.~Jordan, ``Theoretically
+  principled trade-off between robustness and accuracy,'' in {\em International
+  Conference on Machine Learning}, pp.~7472--7482, PMLR, 2019.
+
+\bibitem{wu2020adversarial}
+D.~Wu, S.-T. Xia, and Y.~Wang, ``Adversarial weight perturbation helps robust
+  generalization.,'' {\em NeurIPS}, vol.~1, no.~2, p.~3, 2020.
+
+\bibitem{frank1956algorithm}
+M.~Frank, P.~Wolfe, {\em et~al.}, ``An algorithm for quadratic programming,''
+  {\em Naval research logistics quarterly}, vol.~3, no.~1-2, pp.~95--110, 1956.
+
+\bibitem{jaggi2013revisiting}
+M.~Jaggi, ``Revisiting frank-wolfe: Projection-free sparse convex
+  optimization,'' in {\em International Conference on Machine Learning},
+  pp.~427--435, PMLR, 2013.
+
+\end{thebibliography}

@@ -31,9 +31,11 @@ class NNAttack():
             x = x / torch.norm(x, dim=-1, keepdim=True)
             proj_x = torch.matmul(x, model.projector[:, :30])
             x = x.reshape(*x_bu.shape)
-            cdist = torch.cdist(model.data, proj_x.unsqueeze(0)).squeeze(0)  # p * n
+            cdist = torch.cdist(
+                model.data, proj_x.unsqueeze(0)).squeeze(0)  # p * n
             indices = torch.argsort(cdist, dim=0)[:100]
-            raw_labels = model.raw_labels[indices.reshape(-1)].reshape(*indices.shape)
+            raw_labels = model.raw_labels[indices.reshape(
+                -1)].reshape(*indices.shape)
             indices = indices[raw_labels != y[0]]
             return x + self.epsilon * torch.sign(model.raw[indices[0].item()].reshape(*x.shape) - x)
 
@@ -49,7 +51,8 @@ class KNN(nn.Module):
         self.inited = False
         self.raw = nn.Parameter(xs)
         self.raw_labels = torch.cat([y for x, y in data])
-        self.labels = nn.Parameter(nn.functional.one_hot(self.raw_labels, 10).to(self.raw.dtype))
+        self.labels = nn.Parameter(nn.functional.one_hot(
+            self.raw_labels, 10).to(self.raw.dtype))
 
     def init(self):
         self.inited = True
@@ -68,7 +71,6 @@ class KNN(nn.Module):
             + 1e-8
         )
 
-
     def forward(self, x):
         if not self.inited:
             self.init()
@@ -79,5 +81,6 @@ class KNN(nn.Module):
         cdist = torch.cdist(self.data, proj_x.unsqueeze(0)).squeeze(0)  # p * n
         _, indices = torch.topk(cdist, 15, dim=0, largest=False)  # k * n
         gdist = torch.gather(cdist, 0, indices)  # k * n
-        labels = self.labels[indices.reshape(-1)].reshape(*indices.shape, 10)  # k * n * 10
+        # k * n * 10
+        labels = self.labels[indices.reshape(-1)].reshape(*indices.shape, 10)
         return torch.log((labels * torch.exp(-gdist.unsqueeze(-1))).sum(0))

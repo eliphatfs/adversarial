@@ -23,7 +23,6 @@ class FWAdampAttackPlus():
         jac_norm = torch.norm(jac.flatten(1), dim=-1).reshape(-1, 1, 1, 1)
         return jac / (jac_norm + 1e-7) + torch.randn_like(jac) * 5e-8
 
-
     def frank_wolfe(self, model, x, y):
         model.eval()
 

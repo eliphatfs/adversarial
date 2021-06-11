@@ -24,4 +24,5 @@ class ChihaoHappyAttack():
             for idx, (lab_pred, lab_true) in enumerate(zip(y_pred, y)):
                 if lab_pred != lab_true:
                     succeeded_attacks[idx] = x_adv[idx]
+
         return succeeded_attacks

@@ -2,7 +2,7 @@ import torch
 from utils import get_test_cifar
 import matplotlib.pyplot as plotlib
 from model import get_model_for_attack
-import vgg
+# import vgg
 
 plotlib.style.use('seaborn')
 plotlib.rcParams['ps.useafm'] = True
@@ -35,7 +35,8 @@ for x, y in test_loader:
     b = safe_jac(x)
     krylov = [b / torch.norm(b.flatten(1), dim=-1).reshape(-1, 1, 1, 1)]
 
-    batch_dot = lambda u, v: torch.bmm(u.flatten(1).unsqueeze(-2), v.flatten(1).unsqueeze(-1)).flatten(0)
+    def batch_dot(u, v): return torch.bmm(
+        u.flatten(1).unsqueeze(-2), v.flatten(1).unsqueeze(-1)).flatten(0)
     H = torch.zeros(
         [x.shape[0], 5, 4],
         dtype=x.dtype,

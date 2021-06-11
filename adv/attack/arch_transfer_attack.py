@@ -1,5 +1,4 @@
 import torch
-import numpy
 import torch.nn.functional as F
 from typing import *
 
@@ -22,7 +21,7 @@ proof_ops = MonkeyPatcher()
 Tensor = torch.Tensor
 torch.avg_pool2d = F.avg_pool2d
 torch.view = lambda x, *args: x.view(*args)
-annotate = lambda _, x: x
+def annotate(_, x): return x
 
 
 def process_model(model, x):
@@ -53,8 +52,6 @@ class ArchTransferAttack():
         if self.processed_model_id != id(model):
             self.processed_model = process_model(model, x)
         x_adv = x.detach()
-        # self.records.append((self.processed_model(None, x).argmax(-1) == y).float().mean().item())
-        # print(numpy.mean(self.records))
         for i in range(self.perturb_steps):
             x_adv.requires_grad_()
             with torch.enable_grad():

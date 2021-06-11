@@ -1,11 +1,9 @@
 import torch
 import torch.nn.functional as F
-import scipy.optimize as opt
-import numpy
 import sys
 
 
-class ExpAttack():
+class FWAdampAttack():
     def __init__(self, step_size, epsilon, perturb_steps,
                  random_start=None):
         self.step_size = step_size
@@ -13,7 +11,9 @@ class ExpAttack():
         self.perturb_steps = perturb_steps
         self.random_start = random_start
         self.processed_model_id = None
-        print("Using Frank-Wolfe Attack. Baseline is all you need.", file=sys.stderr)
+        print(
+            "Using Frank-Wolfe Attack. Baseline is all you need.",
+            file=sys.stderr)
 
     def bad_krylov(self, model, x, y):
         model.eval()
@@ -22,8 +22,6 @@ class ExpAttack():
             logits = model(cx)
             # labels = torch.eye(10).to(y.device)[y]
             return torch.nn.functional.cross_entropy(logits, y)
-            diag = torch.diagonal(logits[..., y])
-            return logits.sum() - 2 * diag.sum()
 
         x_adv = x.detach()
         y_cpu = y.cpu().numpy()

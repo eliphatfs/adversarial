@@ -19,9 +19,11 @@ class PNewtonAttack():
                 loss_c = F.cross_entropy(model(x_adv), y)
             grad = torch.autograd.grad(loss_c, [x_adv])[0]
             hessian = torch.autograd.functional.hessian(
-                lambda x_adv: F.cross_entropy(model(x_adv.reshape(-1, 3, 32, 32)), y),
+                lambda x_adv: F.cross_entropy(
+                    model(x_adv.reshape(-1, 3, 32, 32)), y),
                 x_adv.flatten(0))
-            descent_direction = torch.linalg.pinv(hessian).detach().mm(grad.reshape(-1, 1)).reshape(-1, 3, 32, 32)
+            descent_direction = torch.linalg.pinv(hessian).detach().mm(
+                grad.reshape(-1, 1)).reshape(-1, 3, 32, 32)
             print(grad.max())
             print(torch.linalg.norm(grad.flatten(0)))
             x_adv = x_adv.detach()\

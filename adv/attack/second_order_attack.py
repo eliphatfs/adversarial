@@ -22,7 +22,8 @@ class SecondOrderAttack():
         model.eval()
         x_adv = x.detach().clone()
         P_module = P(torch.randn_like(x_adv))
-        optimizer = torch.optim.LBFGS(P_module.parameters(), line_search_fn='strong_wolfe')
+        optimizer = torch.optim.LBFGS(
+            P_module.parameters(), line_search_fn='strong_wolfe')
         pertub = P_module.params
 
         def closure():
@@ -31,7 +32,9 @@ class SecondOrderAttack():
             #     torch.max(params, x - self.epsilon), x + self.epsilon)
             # params_clamped = torch.clamp(params_clamped, 0.0, 1.0)
             with torch.enable_grad():
-                loss_params = - F.cross_entropy(model(pertub+x.detach()), y) + (pertub**2).sum()**0.5 * 0.1
+                loss_params = - \
+                    F.cross_entropy(model(pertub+x.detach()), y) + \
+                    (pertub**2).sum()**0.5 * 0.1
                 # loss_params = - F.mse_loss(model(params_clamped), pred)
             loss_params.backward()
 

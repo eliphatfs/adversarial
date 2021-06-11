@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import time
 import torch.optim as optim
-from pgd_attack import pgd_attack
+from attack.pgd_attack import pgd_attack
 from models import ResNet18
 from tqdm import trange
 

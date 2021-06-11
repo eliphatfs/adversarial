@@ -27,7 +27,8 @@ for epoch in range(100):
             x, y = x.to(device), y.to(device)
             # x_bu = x.detach().clone()
             for _ in range(1):
-                x_rg = x.detach().clone().requires_grad_(True) + torch.randn_like(x) * epsilon / 2
+                x_rg = x.detach().clone().requires_grad_(True) + \
+                    torch.randn_like(x) * epsilon / 2
                 optim.zero_grad()
                 pred = model(x_rg)
                 loss = F.cross_entropy(pred, y)
@@ -39,7 +40,7 @@ for epoch in range(100):
                 # reg = model.reg()
                 loss.backward()
                 # (loss + 0.03 * reg).backward()
-                
+
                 # x = x.detach().clone() + torch.sign(grad.detach().clone()) * epsilon
                 # x = torch.min(torch.max(x, x_bu - epsilon), x_bu + epsilon)
                 optim.step()
@@ -47,8 +48,9 @@ for epoch in range(100):
                 # running_grad += reg.item()
                 running_acc += (pred.argmax(-1) == y).float().mean().item()
                 train.set_description("Loss: %.4f, Reg: %.4f, Acc: %.4f" %
-                    (running_loss / 1 / (i + 1), running_grad / 1 / (i + 1), running_acc / 1 / (i + 1))
-                )
+                                      (running_loss / 1 / (i + 1), running_grad /
+                                       1 / (i + 1), running_acc / 1 / (i + 1))
+                                      )
         model.eval()
         if epoch > 20 and epoch % 1 == 0:
             test_acc, test_robust_acc, _ = eval_model_pgd(
@@ -56,6 +58,6 @@ for epoch in range(100):
                 0.007, 8 / 255, 10
             )
             print("Epoch: %d, Robust: %.4f, Acc: %.4f" %
-                (epoch, test_robust_acc, test_acc)
-            )
+                  (epoch, test_robust_acc, test_acc)
+                  )
         torch.save(model.state_dict(), "rn_regm.dat")

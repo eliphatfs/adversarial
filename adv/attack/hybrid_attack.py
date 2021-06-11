@@ -16,7 +16,8 @@ class HybridAttack():
         succeeded_attacks = x.detach()
         sobol_eng = torch.quasirandom.SobolEngine(x_adv.flatten(0).shape[0])
         for i in range(10):
-            pertub = torch.sign(sobol_eng.draw(1).to(x_adv.device)-0.5).reshape_as(x_adv)
+            pertub = torch.sign(sobol_eng.draw(1).to(
+                x_adv.device)-0.5).reshape_as(x_adv)
             x_adv = x.detach() + pertub.detach()
             x_adv = torch.min(
                 torch.max(x_adv, x - self.epsilon), x + self.epsilon)
@@ -31,7 +32,8 @@ class HybridAttack():
                     for i in range(self.perturb_steps):
                         batch.requires_grad_()
                         with torch.enable_grad():
-                            loss_c = F.cross_entropy(model(batch.unsqueeze(0)), batch_label.unsqueeze(0))
+                            loss_c = F.cross_entropy(
+                                model(batch.unsqueeze(0)), batch_label.unsqueeze(0))
                         grad = torch.autograd.grad(loss_c, [batch])[0]
                         batch = batch.detach() + self.step_size * torch.sign(grad.detach())
                         batch = torch.min(
