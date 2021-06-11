@@ -26,4 +26,4 @@ axs[1].legend()
 axs[1].set(xlabel='Value (Log)',)
 
 fig.savefig('CE_AdAmp_distribution.png', dpi=300)
-fig.savefig('CE_AdAmp_distribution.pdf')
+fig.savefig('CE_AdAmp_distribution.pdf', bbox_inches='tight')
