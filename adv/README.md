@@ -141,7 +141,7 @@ Notice that a `--checkpoint_path` argument must be supplied. It should specify t
 
 ### Other Executable Code
 
-These files are not directly related with the main part (attacks and defenses) of our project. However, since they still play an important role in the entire processs of accomplishing this course project, we breifly document their usage here.
+These files are not directly related with the main part (attacks and defenses) of our project. However, since they still play an important role in the entire processs of completing this course project, we briefly document their usage here.
 
 - `adamp_stats.py` and `visualization.py` are used for drawing fancy graphics and are not designed to be runned for experimental purposes.
 - `aegleseeker.py` implements a Lagrangian regularization on convolution kernels. This method is named after [Aegleseeker](https://arcaea.fandom.com/wiki/Aegleseeker).
