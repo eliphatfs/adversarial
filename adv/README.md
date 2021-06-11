@@ -32,19 +32,19 @@
 To evaluate our trained model, please run:
 
 ```shell
-python3 attack_main.py --attacker fw --model_name WRN28_FWAWP
+python attack_main.py --attacker fw --model_name WRN28_FWAWP
 ```
 
 or
 
 ```shell
-python3 attack_main.py --attacker fw --model_name WRN28_FWAWP_TRADES
+python attack_main.py --attacker fw --model_name WRN28_FWAWP_TRADES
 ```
 
 To run a general FW-AdAmp attack, please execute the following:
 
 ```shell
-python3 attack_main.py --attacker fw --model_name <model_name>
+python attack_main.py --attacker fw --model_name <model_name>
 ```
 
 `<model_name>` can be one of:
@@ -87,7 +87,7 @@ python3 attack_main.py --attacker fw --model_name <model_name>
 To train a robust model with FW-AdAmp, please execute the following:
 
 ```shell
-python3 fw_awp_train.py --attacker fw --model WideResNet28 --awp_warmup 10 --trades
+python fw_awp_train.py --attacker fw --model WideResNet28 --awp_warmup 10 --trades
 ```
 
 - This command trains a Wide ResNet 28 with Adversarial Weight Perturbation and TRADES loss.
@@ -134,7 +134,7 @@ It records the epoch of current training process, the state dictionary of the mo
 To resume training please run the following:
 
 ```shell
-python3 fw_awp_train.py --attacker fw --model WideResNet28 --awp_warmup 10 --resume --checkpoint_path <path_to_checkpoint>
+python fw_awp_train.py --attacker fw --model WideResNet28 --awp_warmup 10 --resume --checkpoint_path <path_to_checkpoint>
 ```
 
 Notice that a `--checkpoint_path` argument must be supplied. It should specify the path to a saved [checkpoint](#checkpoint) of a pre-trained model.
