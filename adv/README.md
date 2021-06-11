@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [How To Run](#how-to-run)
+  - [Loading Pretrained Models](#pretrained-models)
   - [Attack](#attack)
   - [Defense](#defense)
   - [Other](#other-executable-code)
