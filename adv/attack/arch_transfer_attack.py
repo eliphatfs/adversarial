@@ -27,11 +27,15 @@ def annotate(_, x): return x
 def process_model(model, x):
     global CONSTANTS
     trace_module = torch.jit.trace(model, x)
-    del trace_module.training
+    try:
+        del trace_module.training
+    except AttributeError:
+        pass
     trace_module.eval()
     frozen_module = torch.jit.freeze(trace_module)
     code, consts = frozen_module.code_with_constants
     func_defs = dict()
+    print(code)
     exec(code.replace("torch.", "proof_ops."), globals(), func_defs)
     CONSTANTS = consts
     return func_defs['forward']

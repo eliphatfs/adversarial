@@ -9,12 +9,10 @@ from attack import BarrierMethodAttack
 from attack import BetterSecondOrderAttack
 from attack import ChihaoHappyAttack
 from attack import DeepFoolAttack
-from attack import FWAdampAttack
 from attack import FWAdampAttackPlus
 from attack import PGDAttack
 from attack import SobolHappyAttack
-from models import WideResNet
-from model import get_model_for_attack
+from model import get_custom_model, get_model_for_attack, get_model_for_defense
 from models import WideResNet28
 from eval_model import eval_model_with_attack
 
@@ -29,10 +27,15 @@ def parse_args():
                         help='max distance for pgd attack (default: 8/255)')
     parser.add_argument('--perturb_steps', type=int, default=20,
                         help='iterations for pgd attack (default pgd20)')
-    parser.add_argument('--model_name', type=str, default="model2")
+    parser.add_argument('--model_name', type=str, default="")
+    parser.add_argument(
+        '--model',
+        choices=['ResNet18', 'PreActResNet18',
+                 'ResNet34', 'PreActResNet34', 'WideResNet28'],
+        default='')
     parser.add_argument(
         '--model_path', type=str,
-        default="./models/weights/model-wideres-pgdHE-wide10.pt"
+        default=''
     )
     parser.add_argument('--device', type=str, default="cuda:0")
     parser.add_argument(
@@ -105,15 +108,13 @@ def get_attacker(attacker, step_size, epsilon, perturb_steps):
 if __name__ == '__main__':
     args = parse_args()
     device = torch.device(args.device)
-    if args.model_name != "":
+    if 'model' in args.model_name:
         model = get_model_for_attack(args.model_name).to(device)
         # 根据model_name, 切换要攻击的model
+    elif args.model_name != '':
+        model = get_model_for_defense(args.model_name).to(device)
     else:
-        # 防御任务, Change to your model here
-        model = WideResNet28().to(device)
-        checkpoint = torch.load(
-            './models/weights/WideResNet28TRADE_FWAWP-best.pt')
-        model.load_state_dict(checkpoint['model'])
+        model = get_custom_model(args.model, args.model_path).to(device)
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
     model = nn.DataParallel(model, device_ids=[0])

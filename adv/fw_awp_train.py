@@ -71,13 +71,13 @@ def parse_args():
                  'ResNet34', 'PreActResNet34', 'WideResNet28'],
         default='ResNet18')
     parser.add_argument(
-        '--model_name', default='myModel',
+        '--model_name', default='baseline',
         help='name for model, used in logging')
     parser.add_argument(
         '--resume', type=bool, default=False,
         help='whether to resume training or start a new one.')
     parser.add_argument(
-        '--checkpoint_path', default='./pretrained/ckpt.pt',
+        '--checkpoint_path', default='./pretrained/baseline.pt',
         help='used when --resume=True, path to model checkpoint')
     parser.add_argument(
         '--checkpoint_start', type=int, default=50,
@@ -187,7 +187,7 @@ def adjust_learning_rate(optimizer, epoch):
         param_group['lr'] = lr
 
 
-def get_model(model_name, device):
+def get_model_for_training(model_name, device):
     if model_name == 'ResNet18':
         print("Model: ResNet18", file=sys.stderr)
         return ResNet18().to(device), ResNet18().to(device)
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     log.print(args)
 
     device = torch.device('cuda')
-    model, proxy = get_model(args.model, device)
+    model, proxy = get_model_for_training(args.model, device)
     model = nn.DataParallel(model, device_ids=[0])
     proxy = nn.DataParallel(proxy, device_ids=[0])
 
