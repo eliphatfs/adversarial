@@ -240,8 +240,8 @@ if __name__ == "__main__":
 
     device = torch.device('cuda')
     model, proxy = get_model_for_training(args.model, device)
-    model = nn.DataParallel(model, device_ids=[0])
-    proxy = nn.DataParallel(proxy, device_ids=[0])
+    model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
+    proxy = nn.DataParallel(proxy, device_ids=[i for i in range(gpu_num)])
 
     train_loader, test_loader = prepare_cifar(
         args.batch_size, args.test_batch_size)

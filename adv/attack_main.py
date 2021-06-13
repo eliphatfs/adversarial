@@ -13,7 +13,6 @@ from attack import FWAdampAttackPlus
 from attack import PGDAttack
 from attack import SobolHappyAttack
 from model import get_custom_model, get_model_for_attack, get_model_for_defense
-from models import WideResNet28
 from eval_model import eval_model_with_attack
 
 

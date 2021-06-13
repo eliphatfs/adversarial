@@ -7,27 +7,54 @@
 
 ## Table of Contents
 
+- [Environment](#environment)
 - [How To Run](#how-to-run)
   - [Loading Pretrained Models](#pretrained-models)
+  - [Infer](#infer)
   - [Attack](#attack)
   - [Defense](#defense)
   - [Other](#other-executable-code)
-- [Environment](#environment)
+
+## Environment
+
+All the code, unless otherwise stated, should be able to run with
+
+- pytorch 1.8.1 with cuda 10.2 or pytorch 1.7.1 with cuda 10.1
+- numpy 1.19.2
+- scipy 1.6.2
 
 ## How to Run
 
 ### Pretrained Models
 
 - Weight of models should be put under directory `./models/weights`
-- We provide two pre-trained Wide ResNet 28 models.
+- We provide two pre-trained Wide ResNet 28 models in the homework submission.
   - `WRN28_FWAWP_TRADES`: Wide ResNet 28 trained with FW-AdAmp, AWP and TRADES
   - `WRN28_FWAWP`: Wide ResNet 28 trained with FW-AdAmp and AWP
-- Other models will be made available soon on jbox (TODO)
-- **NOTE: The loaded files are [checkpoints](#checkpoint) and contains more than the state dict of the model, so remember to use `model` to access the actual state dict of the model**
+- Other models are available on [jbox](https://jbox.sjtu.edu.cn/l/K11K4B)
+- **NOTE**: The `.pt` files are [checkpoints](#checkpoint) and contains **more than just the state dict of the model**; use `checkpoint['model']` to access the actual state dict of the model when loading weights.
+
+### Infer
+
+File `infer.py` provides the evaluation of pretrained models on CIFAR-10 test set **without attack**. To run infer, execute
+
+```shell
+python infer.py --model_name WRN28_FWAWP
+```
+
+or
+
+```shell
+python infer.py --model_name WRN28_FWAWP_TRADES
+```
 
 ### Attack
 
-#### FW-AdAmp
+File `attack_main.py` includes the evaluation of pretrained models on CIFAR-10 test set with attacks.
+
+To use our proposed attack method, please check [Attack with FW-AdAmp](#attack-with-fw-adamp-our-method). We also provide some other attacks, for details please see [Other attacks](#other-attacks).
+
+#### Attack with FW-AdAmp (Our method)
 
 To evaluate our trained model, please run:
 
@@ -41,13 +68,27 @@ or
 python attack_main.py --attacker fw --model_name WRN28_FWAWP_TRADES
 ```
 
-To run a general FW-AdAmp attack, please execute the following:
+#### Other attacks
+
+`attack_main.py` also supports other attacks. To use alternative attacks, change parameter of `--attacker` into one of the following:
+
+- `pgd`: Baseline PGD attack provided by TA.
+- `arch_transfer`: Arch Transfer Attack. **NOTE: this attack somehow does not run on pytorch 1.8.1+cu102. But it should run on pytorch 1.7.1+cu101.**
+- `barrier`: Barrier Method Attack, solves the attacking optimization with Barrier Method.
+- `stochastic_sample`: Basic random sample attack.
+- `sobol_sample`: Improved random sampling attack, uses Sobol sequence for sampling.
+- `deepfool`: Deep Fool attack.
+- `second_order`: Solves the attacking optimization with second-order optimization methods.
+
+#### Using Other Models
+
+To run FW-AdAmp attack on other models, please execute the following:
 
 ```shell
 python attack_main.py --attacker fw --model_name <model_name>
 ```
 
-`<model_name>` can be one of:
+where the argument `--model_name` can be one of the following:
 
 - Models provided by TA
   - `model1`: Basic ResNet 34.
@@ -66,19 +107,8 @@ python attack_main.py --attacker fw --model_name <model_name>
   - `RN18_FWAWP_TRADES`: NOT included in submission. ResNet 18 trained with FW-AdAmp w/ AWP and TRADES loss
   - `WRN28_ATAWP`: NOT included in submission. Wide ResNet 34 trained with AT-AWP
   - `WRN28_ATAWP_TRADES`: NOT included in submission. Wide ResNet 34 trained with TRADES-AWP
-- If no model name is provided (or `""` is provided), then the program will attempt to load a **checkpoint** from a path specified by `--model_path`. In this case the argument `--model` must be given to specify the architecture of the model.
-
-#### Other attacks
-
-`attack_main.py` also supports other attacks. To use alternative attacks, change parameter of `--attacker` into one of the following:
-
-- `pgd`: Baseline PGD attack provided by TA.
-- `arch_transfer`: Arch Transfer Attack. **NOTE: this attack somehow does not run on pytorch 1.8.1+cu102. But it should run on pytorch 1.7.1+cu101.**
-- `barrier`: Barrier Method Attack, solves the attacking optimization with Barrier Method.
-- `stochastic_sample`: Basic random sample attack.
-- `sobol_sample`: Improved random sampling attack, uses Sobol sequence for sampling.
-- `deepfool`: Deep Fool attack.
-- `second_order`: Solves the attacking optimization with second-order optimization methods.
+  - **Models that are not included in submission will be made available on jbox.**
+- If no model name is provided (or `""` is provided), then the program will attempt to load a [checkpoint](#checkpoint) from a path specified by `--model_path`. In this case the argument `--model` must be given to specify the architecture of the model.
 
 ### Defense
 
@@ -87,7 +117,7 @@ python attack_main.py --attacker fw --model_name <model_name>
 To train a robust model with FW-AdAmp, please execute the following:
 
 ```shell
-python fw_awp_train.py --attacker fw --model WideResNet28 --awp_warmup 10 --trades
+python fw_awp_train.py --attacker fw --model WideResNet28 --awp_warmup 10 --trades True
 ```
 
 - This command trains a Wide ResNet 28 with Adversarial Weight Perturbation and TRADES loss.
@@ -129,6 +159,17 @@ The **checkpoint** is a python dictionary
 
 It records the epoch of current training process, the state dictionary of the model and the optimizer, and the state dictionary of the proxy optimizer (proxy is used in AWP).
 
+Usually the checkpoint is used to load models or to resume training.
+
+- To load a pretrained model,
+
+```python
+checkpoint = torch.load('path_to_checkpoint.pt')
+model.load_state_dict(checkpoint['model'])
+```
+
+- To resume training, please refer to [Resume a Training Process](#resume-a-training-process)
+
 #### Resume a Training Process
 
 To resume training please run the following:
@@ -152,14 +193,6 @@ These files are not directly related with the main part (attacks and defenses) o
 - `radam.py` An optimizer. For details please refer to [this repository](https://github.com/LiyuanLucasLiu/RAdam)
 - `reg_mod.py` Our struggle to find proper regularization.
 - `vae.py` It is not encouraged to run this file because it is currently not related with our project at all. The story behind this Variational AutoEncoder is currently pigeoned. Stay tuned. This file is currently not related with our project. For more details, please refer to [this](https://github.com/eliphatfs/adversarial/blob/main/Report/bullshitting.tex).
-
-## Environment
-
-All the code, unless otherwise stated, should run properly with
-
-- pytorch 1.8.1 with cuda 10.2 or pytorch 1.7.1 with cuda 10.1
-- numpy 1.19.2
-- scipy 1.6.2
 
 ## Misc
 
