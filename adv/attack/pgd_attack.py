@@ -39,3 +39,32 @@ class PGDAttack():
                 torch.max(x_adv, x - self.epsilon), x + self.epsilon)
             x_adv = torch.clamp(x_adv, 0.0, 1.0)
         return x_adv
+
+    def untargeted(self, model, x, y):
+        model.eval()
+        x_adv = x.detach()
+        for i in range(self.perturb_steps):
+            x_adv.requires_grad_()
+            with torch.enable_grad():
+                loss_c = F.cross_entropy(model(x_adv), y)
+            grad = torch.autograd.grad(loss_c, [x_adv])[0]
+            x_adv = x_adv.detach() + self.step_size * torch.sign(grad.detach())
+            x_adv = torch.min(
+                torch.max(x_adv, x - self.epsilon), x + self.epsilon)
+            x_adv = torch.clamp(x_adv, 0.0, 1.0)
+        return x_adv
+
+    def targeted(self, model, x, y_tgt):
+        model.eval()
+        x_adv = x.detach()
+        for _ in range(self.perturb_steps):
+            x_adv.requires_grad_()
+            with torch.enable_grad():
+                loss_c = F.cross_entropy(model(x_adv), y_tgt)
+            grad = torch.autograd.grad(loss_c, [x_adv])[0]
+            x_adv = x_adv.detach() - self.step_size * torch.sign(grad.detach())
+            x_adv = torch.min(
+                torch.max(x_adv - self.epsilon), x + self.epsilon)
+            x_adv = torch.clamp(x_adv, 0.0, 1.0)
+
+        return x_adv

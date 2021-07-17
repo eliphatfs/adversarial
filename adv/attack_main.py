@@ -13,7 +13,7 @@ from attack import FWAdampAttackPlus
 from attack import PGDAttack
 from attack import SobolHappyAttack
 from model import get_custom_model, get_model_for_attack, get_model_for_defense
-from eval_model import eval_model_with_attack
+from eval_model import eval_model_with_attack, eval_model_with_targeted_attack
 
 
 def parse_args():
@@ -45,6 +45,8 @@ def parse_args():
             'deepfool', 'second_order'
         ],
         default='fw')
+    parser.add_argument(
+        '--targeted', choices=['targeted', 'untargeted'], default='untargeted')
     return parser.parse_args()
 
 
@@ -121,9 +123,24 @@ if __name__ == '__main__':
         args.attacker, args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
     test_loader = get_test_cifar(args.batch_size)
-    natural_acc, robust_acc, distance = eval_model_with_attack(
-        model, test_loader, attack, args.epsilon, device)
-    print(
-        "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
-        (natural_acc, robust_acc, distance)
-    )
+    if args.targeted == 'untargeted':
+        # non-targeted attack
+        natural_acc, robust_acc, distance = eval_model_with_attack(
+            model, test_loader, attack, args.epsilon, device)
+        print(
+            "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
+            (natural_acc, robust_acc, distance)
+        )
+    else:
+        if args.attacker != 'pgd' and args.attacker != 'fw':
+            raise NotImplementedError(
+                f"Targeted attack of {args.attacker} is currently pigeoned.")
+        # targeted attack, default target is 0
+        natural_acc, robust_acc, success_rate, distance =\
+            eval_model_with_targeted_attack(
+                model, test_loader, attack, args.epsilon, device
+            )
+        print(
+            "Natural Acc: %.5f, Robust acc: %.5f, Success Rate: %.5f, distance: %.5f" %
+            (natural_acc, robust_acc, success_rate, distance)
+        )
