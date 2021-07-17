@@ -6,6 +6,18 @@ import os
 import sys
 
 
+def print_attack_main_args(args):
+    print("===== Arguments =====")
+    print(f"  - Batch size: {args.batch_size}")
+    print(f"  - Step size: {args.step_size}")
+    print(f"  - Epsilon: {args.epsilon:.5f}")
+    print(f"  - Perturb steps: {args.perturb_steps}")
+    print(f"  - Model name: {args.model_name}")
+    print(f"  - Model architecture: {args.model if args.model != '' else args.model_name}")
+    print(f"  - Attacker: {args.attacker}")
+    print(f"  - Targeted: {args.targeted == 'targeted'}")
+
+
 def check_mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)

@@ -3,7 +3,7 @@ import torch.nn as nn
 import sys
 import argparse
 
-from utils import get_test_cifar
+from utils import get_test_cifar, print_attack_main_args
 from attack import ArchTransferAttack
 from attack import BarrierMethodAttack
 from attack import BetterSecondOrderAttack
@@ -108,6 +108,7 @@ def get_attacker(attacker, step_size, epsilon, perturb_steps):
 
 if __name__ == '__main__':
     args = parse_args()
+    print_attack_main_args(args)
     device = torch.device(args.device)
     if 'model' in args.model_name:
         model = get_model_for_attack(args.model_name).to(device)

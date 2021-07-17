@@ -95,7 +95,7 @@ def eval_model_with_targeted_attack(model, test_loader, attack, epsilon, device)
         for x, label in test_loader:
             x, label = x.to(device), label.to(device)
             batch, c, h, w = x.shape
-            y_tgt = torch.zeros_like(label).to(device)
+            y_tgt = torch.ones_like(label).to(device)
             x_adv = attack.targeted(model, x.clone(), y_tgt.clone())
             x_adv = torch.min(torch.max(x_adv, x - epsilon), x + epsilon)
             x_adv = x_adv.clamp(0, 1)

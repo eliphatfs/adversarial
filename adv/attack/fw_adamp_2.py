@@ -35,8 +35,6 @@ class FWAdampAttackPlus():
         return torch.clamp(x_adv, 0, 1)
 
     def targeted(self, model, x, y_tgt):
-        raise NotImplementedError(
-            "Targeted attack for fw-adamp is not available at the moment.")
         model.eval()
 
         x_adv = x.detach()
@@ -44,5 +42,5 @@ class FWAdampAttackPlus():
             safe_jac = self.safe_jac(model, x_adv, y_tgt)
             s = x - torch.sign(safe_jac) * self.epsilon
             a = 2 / (k + 2)
-            x_adv = x_adv - a * (s - x_adv)
+            x_adv = x_adv + a * (s - x_adv)
         return torch.clamp(x_adv, 0, 1)
