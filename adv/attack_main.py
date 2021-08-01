@@ -12,6 +12,8 @@ from attack import DeepFoolAttack
 from attack import FWAdampAttackPlus
 from attack import PGDAttack
 from attack import SobolHappyAttack
+from attack import StochasticFWAdampAttack
+from attack import SPSA
 from model import get_custom_model, get_model_for_attack, get_model_for_defense
 from eval_model import eval_model_with_attack, eval_model_with_targeted_attack
 
@@ -42,7 +44,7 @@ def parse_args():
         choices=[
             'pgd', 'fw', 'arch_transfer', 'barrier',
             'stochastic_sample', 'sobol_sample',
-            'deepfool', 'second_order'
+            'deepfool', 'second_order', 'stoch_fw', 'spsa'
         ],
         default='fw')
     parser.add_argument(
@@ -103,6 +105,14 @@ def get_attacker(attacker, step_size, epsilon, perturb_steps):
     elif attacker == 'second_order':
         print('Using Second Order Attack', file=sys.stderr)
         return BetterSecondOrderAttack(
+            step_size, epsilon, perturb_steps)
+    elif attacker == 'stoch_fw':
+        print('Using SPSA FW-AdAmp')
+        return StochasticFWAdampAttack(
+            step_size, epsilon, perturb_steps)
+    elif attacker == 'spsa':
+        print('Using SPSA')
+        return SPSA(
             step_size, epsilon, perturb_steps)
 
 
