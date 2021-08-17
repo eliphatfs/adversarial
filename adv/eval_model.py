@@ -1,4 +1,5 @@
 import torch
+import pickle
 
 from attack.pgd_attack import pgd_attack
 from tqdm import trange
@@ -56,6 +57,7 @@ def eval_model_pgd(model, test_loader, device, step_size, epsilon, perturb_steps
 
 
 def eval_model_with_attack(model, test_loader, attack, epsilon, device):
+    orig_pic, adv_pic, perturb = [], [], []
     correct_adv, correct = [], []
     distance = []
     num = 0
@@ -66,6 +68,11 @@ def eval_model_with_attack(model, test_loader, attack, epsilon, device):
             x_adv = attack(model, x.clone(), label.clone())
             x_adv = torch.min(torch.max(x_adv, x - epsilon), x + epsilon)
             x_adv = x_adv.clamp(0, 1)
+            batch_orig_pic = x.cpu().detach().numpy()
+            batch_adv_pic = x_adv.cpu().detach().numpy()
+            orig_pic.extend(batch_orig_pic)
+            adv_pic.extend(batch_adv_pic)
+            perturb.extend(batch_adv_pic - batch_orig_pic)
             model.eval()
             with torch.no_grad():
                 output = model(x)
@@ -83,6 +90,9 @@ def eval_model_with_attack(model, test_loader, attack, epsilon, device):
     natural_acc = torch.cat(correct).float().mean()
     robust_acc = torch.cat(correct_adv).float().mean()
     distance = torch.cat(distance).max()
+    # pickle.dump(orig_pic, open('./pics_ori_mdl3_fw.pkl', 'wb'))
+    # pickle.dump(adv_pic, open('./pics_adv_mdl3_fw.pkl', 'wb'))
+    pickle.dump(perturb, open('./pics_ptb_mdl5_fw.pkl', 'wb'))
     return natural_acc, robust_acc, distance
 
 

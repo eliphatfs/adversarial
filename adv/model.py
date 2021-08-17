@@ -1,8 +1,7 @@
-from torch._C import Value
 from models import WideResNet, ResNet18
 from models import SmallResNet, WideResNet28, WideResNet34
 from models import PreActResNet18, PreActResNet34
-from models import ResNet18, ResNet34
+from models import ResNet34
 import torch
 
 

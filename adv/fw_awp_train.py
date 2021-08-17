@@ -91,6 +91,51 @@ def parse_args():
     return parser.parse_args()
 
 
+def train_standard_epoch(
+    model: nn.Module,
+    train_loader,
+    device,
+    optimizer: optim.Optimizer,
+    epoch,
+    args
+):
+    """Standard model training, without adversarial attacks.
+    """
+    model.train()
+    corrects = 0
+    data_num = 0
+    loss_sum = 0
+
+    with trange(len(train_loader.dataset)) as pbar:
+        for batch_idx, (data, target) in enumerate(train_loader):
+            x, y = data.to(device), target.to(device)
+            data_num += x.shape[0]
+
+            model.train()
+
+            # gradient descent
+            # use standard cross entropy loss
+            output = model(x)
+            loss = nn.CrossEntropyLoss()(output, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            loss_sum += loss.item()
+            with torch.no_grad():
+                model.eval()
+                pred = torch.argmax(output, dim=1)
+                corrects += (pred == y).float().sum()
+            pbar.set_description(
+                f"Train Epoch:{epoch}, Loss:{loss.item():.3f}, " +
+                f"acc:{corrects / float(data_num):.4f}, "
+            )
+            pbar.update(x.shape[0])
+    acc, adv_acc = corrects / float(data_num), 0
+    mean_loss = loss_sum / float(batch_idx+1)
+    return acc, adv_acc, mean_loss
+
+
 def train_fwawp_epoch(
         model: nn.Module,
         perturbator: AdvWeightPerturb,
@@ -263,18 +308,19 @@ if __name__ == "__main__":
                 model_optimizer,
                 proxy_optimizer)
 
-    if args.attacker == 'pgd':
-        attacker = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
-    else:
-        attacker = FWAdampAttackPlus(
-            args.step_size,
-            args.epsilon,
-            args.perturb_steps,)
-    perturbator = AdvWeightPerturb(
-        model=model,
-        proxy=proxy,
-        proxy_optim=proxy_optimizer,
-        gamma=args.awp_gamma,)
+    if args.adv_train:
+        if args.attacker == 'pgd':
+            attacker = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
+        else:
+            attacker = FWAdampAttackPlus(
+                args.step_size,
+                args.epsilon,
+                args.perturb_steps,)
+        perturbator = AdvWeightPerturb(
+            model=model,
+            proxy=proxy,
+            proxy_optim=proxy_optimizer,
+            gamma=args.awp_gamma,)
 
     best_epoch, best_robust_acc = 0, 0.
     losses = []
@@ -285,10 +331,14 @@ if __name__ == "__main__":
         start_time = time.time()
         adjust_learning_rate(model_optimizer, e)
 
-        # adv training
-        train_acc, train_robust_acc, loss = train_fwawp_epoch(
-            model, perturbator, attacker, train_loader,
-            device, model_optimizer, e, args)
+        if args.adv_train:
+            # adv training
+            train_acc, train_robust_acc, loss = train_fwawp_epoch(
+                model, perturbator, attacker, train_loader,
+                device, model_optimizer, e, args)
+        else:
+            train_acc, train_robust_acc, loss = train_standard_epoch(
+                model, train_loader, device, model_optimizer, e, args)
 
         losses.append(loss)
 
