@@ -199,6 +199,7 @@ def run_patching_pipeline(
     # save head
     head = get_head_patches(reduced, patch_size)
     pickle.dump(head, open(save_file_name + '.pkl', 'wb'))
+    # pickle.dump(cum_sum, open(save_file_name + '-cumsum.pkl', 'wb'))
     print(f'  - Head samples saved to {save_file_name}')
 
     # visualization
