@@ -13,36 +13,44 @@ from attack import FWAdampAttack
 from attack import FWAdampAttackPlus
 from attack import PGDAttack
 from attack import SobolHappyAttack
+from attack import EnergyAttack
+try:
+    from attack.torchattackext import TAEXT
+except ImportError:
+    pass
 from models import WideResNet
 from model import get_model_for_attack
 from models import WideResNet28
 from eval_model import eval_model_with_attack
 
 
+torch.set_num_threads(8)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
-    parser.add_argument('--batch_size', type=int, default=128, metavar='N',
+    parser.add_argument('--batch_size', type=int, default=8, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('--step_size', type=int, default=0.003,
                         help='step size for pgd attack(default:0.003)')
     parser.add_argument('--epsilon', type=float, default=8/255.0,
                         help='max distance for pgd attack (default: 8/255)')
-    parser.add_argument('--perturb_steps', type=int, default=20,
+    parser.add_argument('--perturb_steps', type=int, default=80,
                         help='iterations for pgd attack (default pgd20)')
-    parser.add_argument('--model_name', type=str, default="model2")
+    parser.add_argument('--model_name', type=str, default="model1")
     parser.add_argument(
         '--model_path', type=str,
         default="./models/weights/model-wideres-pgdHE-wide10.pt"
     )
-    parser.add_argument('--device', type=str, default="cuda:0")
+    parser.add_argument('--device', type=str, default="cpu")
     parser.add_argument(
         '--attacker',
         choices=[
             'pgd', 'fw', 'arch_transfer', 'barrier',
             'stochastic_sample', 'sobol_sample',
-            'deepfool', 'second_order'
+            'deepfool', 'second_order', 'energy', 'ta'
         ],
-        default='fw')
+        default='energy')
     return parser.parse_args()
 
 
@@ -100,6 +108,13 @@ def get_attacker(attacker, step_size, epsilon, perturb_steps):
         print('Using Second Order Attack', file=sys.stderr)
         return BetterSecondOrderAttack(
             step_size, epsilon, perturb_steps)
+    elif attacker == 'energy':
+        print('Using Energy Attack', file=sys.stderr)
+        return EnergyAttack(
+            step_size, epsilon, perturb_steps)
+    elif attacker == 'ta':
+        print('Using External Attack', file=sys.stderr)
+        return TAEXT(step_size, epsilon, perturb_steps)
 
 
 if __name__ == '__main__':
@@ -116,7 +131,7 @@ if __name__ == '__main__':
         model.load_state_dict(checkpoint['model'])
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
-    model = nn.DataParallel(model, device_ids=[0])
+    # model = nn.DataParallel(model, device_ids=[0])
     attack = get_attacker(
         args.attacker, args.step_size, args.epsilon, args.perturb_steps)
     model.eval()

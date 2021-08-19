@@ -10,3 +10,4 @@ from .mod_pgd_attack import PGDAttackMod2
 from .pgd_attack import PGDAttack
 from .second_order_attack import SecondOrderAttack
 from .sobol_happy_attack import SobolHappyAttack
+from .energy_attack import EnergyAttack
