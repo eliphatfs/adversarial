@@ -71,13 +71,13 @@ def parse_args():
                  'ResNet34', 'PreActResNet34', 'WideResNet28'],
         default='ResNet18')
     parser.add_argument(
-        '--model_name', default='myModel',
+        '--model_name', default='baseline',
         help='name for model, used in logging')
     parser.add_argument(
         '--resume', type=bool, default=False,
         help='whether to resume training or start a new one.')
     parser.add_argument(
-        '--checkpoint_path', default='./pretrained/ckpt.pt',
+        '--checkpoint_path', default='./pretrained/baseline.pt',
         help='used when --resume=True, path to model checkpoint')
     parser.add_argument(
         '--checkpoint_start', type=int, default=50,
@@ -89,6 +89,51 @@ def parse_args():
         '--trades_param', type=float, default=6.0,
         help='1/gamma in TRADES loss: regularization factor (default 6.0)')  # 1/lambda in TRADES
     return parser.parse_args()
+
+
+def train_standard_epoch(
+    model: nn.Module,
+    train_loader,
+    device,
+    optimizer: optim.Optimizer,
+    epoch,
+    args
+):
+    """Standard model training, without adversarial attacks.
+    """
+    model.train()
+    corrects = 0
+    data_num = 0
+    loss_sum = 0
+
+    with trange(len(train_loader.dataset)) as pbar:
+        for batch_idx, (data, target) in enumerate(train_loader):
+            x, y = data.to(device), target.to(device)
+            data_num += x.shape[0]
+
+            model.train()
+
+            # gradient descent
+            # use standard cross entropy loss
+            output = model(x)
+            loss = nn.CrossEntropyLoss()(output, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            loss_sum += loss.item()
+            with torch.no_grad():
+                model.eval()
+                pred = torch.argmax(output, dim=1)
+                corrects += (pred == y).float().sum()
+            pbar.set_description(
+                f"Train Epoch:{epoch}, Loss:{loss.item():.3f}, " +
+                f"acc:{corrects / float(data_num):.4f}, "
+            )
+            pbar.update(x.shape[0])
+    acc, adv_acc = corrects / float(data_num), 0
+    mean_loss = loss_sum / float(batch_idx+1)
+    return acc, adv_acc, mean_loss
 
 
 def train_fwawp_epoch(
@@ -187,7 +232,7 @@ def adjust_learning_rate(optimizer, epoch):
         param_group['lr'] = lr
 
 
-def get_model(model_name, device):
+def get_model_for_training(model_name, device):
     if model_name == 'ResNet18':
         print("Model: ResNet18", file=sys.stderr)
         return ResNet18().to(device), ResNet18().to(device)
@@ -239,9 +284,9 @@ if __name__ == "__main__":
     log.print(args)
 
     device = torch.device('cuda')
-    model, proxy = get_model(args.model, device)
-    model = nn.DataParallel(model, device_ids=[0])
-    proxy = nn.DataParallel(proxy, device_ids=[0])
+    model, proxy = get_model_for_training(args.model, device)
+    model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
+    proxy = nn.DataParallel(proxy, device_ids=[i for i in range(gpu_num)])
 
     train_loader, test_loader = prepare_cifar(
         args.batch_size, args.test_batch_size)
@@ -263,18 +308,19 @@ if __name__ == "__main__":
                 model_optimizer,
                 proxy_optimizer)
 
-    if args.attacker == 'pgd':
-        attacker = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
-    else:
-        attacker = FWAdampAttackPlus(
-            args.step_size,
-            args.epsilon,
-            args.perturb_steps,)
-    perturbator = AdvWeightPerturb(
-        model=model,
-        proxy=proxy,
-        proxy_optim=proxy_optimizer,
-        gamma=args.awp_gamma,)
+    if args.adv_train:
+        if args.attacker == 'pgd':
+            attacker = PGDAttack(args.step_size, args.epsilon, args.perturb_steps)
+        else:
+            attacker = FWAdampAttackPlus(
+                args.step_size,
+                args.epsilon,
+                args.perturb_steps,)
+        perturbator = AdvWeightPerturb(
+            model=model,
+            proxy=proxy,
+            proxy_optim=proxy_optimizer,
+            gamma=args.awp_gamma,)
 
     best_epoch, best_robust_acc = 0, 0.
     losses = []
@@ -285,10 +331,14 @@ if __name__ == "__main__":
         start_time = time.time()
         adjust_learning_rate(model_optimizer, e)
 
-        # adv training
-        train_acc, train_robust_acc, loss = train_fwawp_epoch(
-            model, perturbator, attacker, train_loader,
-            device, model_optimizer, e, args)
+        if args.adv_train:
+            # adv training
+            train_acc, train_robust_acc, loss = train_fwawp_epoch(
+                model, perturbator, attacker, train_loader,
+                device, model_optimizer, e, args)
+        else:
+            train_acc, train_robust_acc, loss = train_standard_epoch(
+                model, train_loader, device, model_optimizer, e, args)
 
         losses.append(loss)
 

@@ -1,5 +1,7 @@
 from models import WideResNet, ResNet18
-from models import ResNet34, SmallResNet, WideResNet28, WideResNet34
+from models import SmallResNet, WideResNet28, WideResNet34
+from models import PreActResNet18, PreActResNet34
+from models import ResNet34
 import torch
 
 
@@ -22,6 +24,57 @@ def filter_state_dict(state_dict):
 def load_w(model, path):
     pref = next(model.parameters())
     model.load_state_dict(torch.load(path, map_location=pref.device))
+
+
+def get_model_for_defense(model_name):
+    if 'WRN28' in model_name:
+        model = WideResNet28()
+    elif 'PreActRN18' in model_name:
+        model = PreActResNet18()
+    elif 'PreActRN34' in model_name:
+        model = PreActResNet34()
+    elif 'RN18' in model_name:
+        model = ResNet18()
+    elif 'RN34' in model_name:
+        model = ResNet34()
+    else:
+        raise ValueError(
+            f'Unsupported model name: {model_name}. Check your spelling!')
+    checkpoint = torch.load(f"./models/weights/{model_name}.pt")
+    model.load_state_dict(checkpoint['model'])
+
+    return model
+
+
+def get_custom_model(model, model_path):
+    if model == '':
+        raise ValueError('Please specify a model architecture!')
+    if model_path == '':
+        raise ValueError('Please specify a path to checkpoint!')
+
+    model = _get_specified_model(model)
+    checkpoint = torch.load(model_path)
+    model.load_state_dict(checkpoint['model'])
+
+    return model
+
+
+def _get_specified_model(model):
+    if model == 'ResNet18':
+        return ResNet18()
+    elif model == 'ResNet34':
+        return ResNet34()
+    elif model == 'PreActResNet18':
+        return PreActResNet18()
+    elif model == 'PreActResNet34':
+        return PreActResNet34()
+    elif model == 'WideResNet28':
+        return WideResNet28()
+    elif model == 'WideResNet34':
+        return WideResNet34()
+    else:
+        return ResNet18()
+    # fixme: remove support for WRN34
 
 
 def get_model_for_attack(model_name):

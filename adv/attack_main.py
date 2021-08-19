@@ -3,13 +3,12 @@ import torch.nn as nn
 import sys
 import argparse
 
-from utils import get_test_cifar
+from utils import get_test_cifar, print_attack_main_args
 from attack import ArchTransferAttack
 from attack import BarrierMethodAttack
 from attack import BetterSecondOrderAttack
 from attack import ChihaoHappyAttack
 from attack import DeepFoolAttack
-from attack import FWAdampAttack
 from attack import FWAdampAttackPlus
 from attack import PGDAttack
 from attack import SobolHappyAttack
@@ -22,6 +21,10 @@ from models import WideResNet
 from model import get_model_for_attack
 from models import WideResNet28
 from eval_model import eval_model_with_attack
+from attack import StochasticFWAdampAttack
+from attack import SPSA
+from model import get_custom_model, get_model_for_attack, get_model_for_defense
+from eval_model import eval_model_with_attack, eval_model_with_targeted_attack
 
 
 torch.set_num_threads(8)
@@ -39,8 +42,13 @@ def parse_args():
                         help='iterations for pgd attack (default pgd20)')
     parser.add_argument('--model_name', type=str, default="model1")
     parser.add_argument(
+        '--model',
+        choices=['ResNet18', 'PreActResNet18',
+                 'ResNet34', 'PreActResNet34', 'WideResNet28'],
+        default='')
+    parser.add_argument(
         '--model_path', type=str,
-        default="./models/weights/model-wideres-pgdHE-wide10.pt"
+        default=''
     )
     parser.add_argument('--device', type=str, default="cpu")
     parser.add_argument(
@@ -48,9 +56,11 @@ def parse_args():
         choices=[
             'pgd', 'fw', 'arch_transfer', 'barrier',
             'stochastic_sample', 'sobol_sample',
-            'deepfool', 'second_order', 'energy', 'ta'
+            'deepfool', 'second_order', 'energy', 'ta', 'stoch_fw', 'spsa'
         ],
         default='energy')
+    parser.add_argument(
+        '--targeted', choices=['targeted', 'untargeted'], default='untargeted')
     return parser.parse_args()
 
 
@@ -115,20 +125,27 @@ def get_attacker(attacker, step_size, epsilon, perturb_steps):
     elif attacker == 'ta':
         print('Using External Attack', file=sys.stderr)
         return TAEXT(step_size, epsilon, perturb_steps)
+    elif attacker == 'stoch_fw':
+        print('Using SPSA FW-AdAmp')
+        return StochasticFWAdampAttack(
+            step_size, epsilon, perturb_steps)
+    elif attacker == 'spsa':
+        print('Using SPSA')
+        return SPSA(
+            step_size, epsilon, perturb_steps)
 
 
 if __name__ == '__main__':
     args = parse_args()
+    print_attack_main_args(args)
     device = torch.device(args.device)
-    if args.model_name != "":
+    if 'model' in args.model_name:
         model = get_model_for_attack(args.model_name).to(device)
         # 根据model_name, 切换要攻击的model
+    elif args.model_name != '':
+        model = get_model_for_defense(args.model_name).to(device)
     else:
-        # 防御任务, Change to your model here
-        model = WideResNet28().to(device)
-        checkpoint = torch.load(
-            './models/weights/WideResNet28TRADE_FWAWP-best.pt')
-        model.load_state_dict(checkpoint['model'])
+        model = get_custom_model(args.model, args.model_path).to(device)
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
     # model = nn.DataParallel(model, device_ids=[0])
@@ -136,9 +153,24 @@ if __name__ == '__main__':
         args.attacker, args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
     test_loader = get_test_cifar(args.batch_size)
-    natural_acc, robust_acc, distance = eval_model_with_attack(
-        model, test_loader, attack, args.epsilon, device)
-    print(
-        "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
-        (natural_acc, robust_acc, distance)
-    )
+    if args.targeted == 'untargeted':
+        # non-targeted attack
+        natural_acc, robust_acc, distance = eval_model_with_attack(
+            model, test_loader, attack, args.epsilon, device)
+        print(
+            "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
+            (natural_acc, robust_acc, distance)
+        )
+    else:
+        if args.attacker != 'pgd' and args.attacker != 'fw':
+            raise NotImplementedError(
+                f"Targeted attack of {args.attacker} is currently pigeoned.")
+        # targeted attack, default target is 0
+        natural_acc, robust_acc, success_rate, distance =\
+            eval_model_with_targeted_attack(
+                model, test_loader, attack, args.epsilon, device
+            )
+        print(
+            "Natural Acc: %.5f, Robust acc: %.5f, Success Rate: %.5f, distance: %.5f" %
+            (natural_acc, robust_acc, success_rate, distance)
+        )
