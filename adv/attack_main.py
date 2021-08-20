@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import sys
 import argparse
+import numpy
 
 from utils import get_test_cifar, print_attack_main_args
 from attack import ArchTransferAttack
@@ -32,13 +33,13 @@ torch.set_num_threads(8)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
-    parser.add_argument('--batch_size', type=int, default=8, metavar='N',
+    parser.add_argument('--batch_size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('--step_size', type=int, default=0.003,
                         help='step size for pgd attack(default:0.003)')
     parser.add_argument('--epsilon', type=float, default=8/255.0,
                         help='max distance for pgd attack (default: 8/255)')
-    parser.add_argument('--perturb_steps', type=int, default=80,
+    parser.add_argument('--perturb_steps', type=int, default=10000,
                         help='iterations for pgd attack (default pgd20)')
     parser.add_argument('--model_name', type=str, default="model1")
     parser.add_argument(
@@ -50,7 +51,7 @@ def parse_args():
         '--model_path', type=str,
         default=''
     )
-    parser.add_argument('--device', type=str, default="cpu")
+    parser.add_argument('--device', type=str, default="cuda:0")
     parser.add_argument(
         '--attacker',
         choices=[
@@ -148,7 +149,7 @@ if __name__ == '__main__':
         model = get_custom_model(args.model, args.model_path).to(device)
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
-    # model = nn.DataParallel(model, device_ids=[0])
+    model = nn.DataParallel(model, device_ids=[0, 1, 2, 3])
     attack = get_attacker(
         args.attacker, args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
@@ -161,6 +162,11 @@ if __name__ == '__main__':
             "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
             (natural_acc, robust_acc, distance)
         )
+        if hasattr(attack, 'consumed_steps'):
+            consumed_steps = numpy.array(attack.consumed_steps)
+            consumed_steps = consumed_steps[consumed_steps <= attack.perturb_steps]
+            print("Mean", numpy.mean(consumed_steps))
+            print("Median", numpy.median(consumed_steps))
     else:
         if args.attacker != 'pgd' and args.attacker != 'fw':
             raise NotImplementedError(
