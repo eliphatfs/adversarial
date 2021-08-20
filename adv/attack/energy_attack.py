@@ -29,7 +29,8 @@ class EnergyAttack():
             1
         )
         # return self.do_clamp(x_adv + torch.sign(torch.randn_like(x_adv)) * self.epsilon / 2, x)
-        po = 0.5 * step / self.perturb_steps
+        # po = 0.5 * step / self.perturb_steps
+        po = 1.0 * step / self.perturb_steps
         k = numpy.random.choice(
             len(self.eigv),
             size=[len(x)],
@@ -40,9 +41,10 @@ class EnergyAttack():
         nor_dir = numpy.sign(directions) * self.epsilon * 2
         ss = numpy.sign(numpy.random.randn(len(nor_dir), n_pert))
         for m in range(n_pert):
-            px, py = numpy.random.randint(32 - self.p, size=[2])
+            px, py = numpy.random.randint(x.shape[-1] - self.p, size=[2])
             sp_dir[..., px: px + self.p, py: py + self.p] = (
-                ss[:, m].reshape(-1, 1, 1, 1) * nor_dir.reshape(-1, 3, self.p, self.p)
+                ss[:, m].reshape(-1, 1, 1, 1) *
+                nor_dir.reshape(-1, 3, self.p, self.p)
             )
         sp_dir = x_adv.new_tensor(sp_dir)
         return self.do_clamp(x_adv + sp_dir, x)
@@ -50,14 +52,15 @@ class EnergyAttack():
     def change_base(self, step):
         if step == -1:
             self.eigv, self.basis, _ = pickle.load(
-                open("data/attacked-pickle/model2_fw_5-pca.pkl", "rb")
+                open("./pkls/vgg16bn_fw_60-full.pkl", "rb")
             )
 
     def __call__(self, model, x, y):
         model.eval()
         x_adv = x.detach().clone()
         self.change_base(-1)
-        for _ in range(int((x.shape[-1] / self.p) ** 2 / 2 + 1)):
+        # for _ in range(int((x.shape[-1] / self.p) ** 2 / 2 + 1)):
+        for _ in range(10):
             x_adv = self.generate_new(x_adv, x, 0)
         cor, cur = self.per_sample_adamp_loss(model, x_adv, y)
         steps = numpy.full([len(x)], self.perturb_steps + 1)
@@ -68,8 +71,10 @@ class EnergyAttack():
             for s in range(self.perturb_steps):
                 self.change_base(s)
                 active_indices = torch.BoolTensor(cor == False).to(x.device)
-                new_samples = self.generate_new(x_adv[active_indices], x[active_indices], s)
-                ncr, nex = self.per_sample_adamp_loss(model, new_samples, y[active_indices])
+                new_samples = self.generate_new(
+                    x_adv[active_indices], x[active_indices], s)
+                ncr, nex = self.per_sample_adamp_loss(
+                    model, new_samples, y[active_indices])
                 for j, c, n, ns in zip(numpy.arange(len(x))[~cor], cur[active_indices], nex, new_samples):
                     if n > c:
                         x_adv[j] = ns
@@ -91,5 +96,6 @@ class EnergyAttack():
         L = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         return (
             (logits.max(-1)[-1] != y).cpu().numpy(),
-            sum(w ** 2 * F.cross_entropy(logits * w, y, reduction='none') for w in L)
+            sum(w ** 2 * F.cross_entropy(logits * w, y, reduction='none')
+                for w in L)
         )

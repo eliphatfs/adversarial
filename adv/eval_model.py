@@ -92,7 +92,7 @@ def eval_model_with_attack(model, test_loader, attack, epsilon, device):
     distance = torch.cat(distance).max()
     # pickle.dump(orig_pic, open('./pics_ori_mdl3_fw.pkl', 'wb'))
     # pickle.dump(adv_pic, open('./pics_adv_mdl3_fw.pkl', 'wb'))
-    pickle.dump(perturb, open('./pics_ptb_mdl5_fw.pkl', 'wb'))
+    pickle.dump(perturb, open('./pics_ptb_vgg16bn_fw.pkl', 'wb'))
     return natural_acc, robust_acc, distance
 
 

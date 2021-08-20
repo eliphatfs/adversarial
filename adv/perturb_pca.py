@@ -26,8 +26,8 @@ def patching(perturbs, patch_size, downsample=False):
     N, C, H, W = perturbs.shape
     counter = H - patch_size + 1
     if downsample:
-        rows = np.random.choice(range(counter), int(counter // 5))
-        cols = np.random.choice(range(counter), int(counter // 5))
+        rows = np.random.choice(range(counter), int(counter * 0.09))
+        cols = np.random.choice(range(counter), int(counter * 0.09))
     else:
         rows = range(counter)
         cols = range(counter)
