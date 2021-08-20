@@ -3,10 +3,11 @@ import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 matplotlib.style.use('seaborn-white')
+np.random.seed(1919810)
 
 
 def get_perturb_pkl_name(model_name, attacker_name):
-    prefix = './pics_ptb_'
+    prefix = './pkls/pics_ptb_'
     return prefix + model_name + '_' + attacker_name + '.pkl'
 
 
@@ -20,16 +21,23 @@ def get_save_file_name(model_name, attacker_name, patch_size):
     return '_'.join([model_name, attacker_name, patch_size_str])
 
 
-def patching(perturbs, patch_size):
+def patching(perturbs, patch_size, downsample=False):
     patch_area = patch_size ** 2
     N, C, H, W = perturbs.shape
     counter = H - patch_size + 1
+    if downsample:
+        rows = np.random.choice(range(counter), int(counter // 5))
+        cols = np.random.choice(range(counter), int(counter // 5))
+    else:
+        rows = range(counter)
+        cols = range(counter)
+    print(f'  - Generating {len(rows)} x {len(cols)} patches.')
     patches = [
         perturbs[item, :, row:row+patch_size, col:col+patch_size].reshape(
             patch_area * C)
         for item in range(N)
-        for row in range(counter)
-        for col in range(counter)]
+        for row in rows
+        for col in cols]
 
     return np.array(patches)
 
@@ -55,7 +63,7 @@ def patch_pca(patches, pca_threshold):
             break
     reduced = vector[:, candidates].T  # k, HWC
 
-    return cum_sum, reduced
+    return cum_sum, reduced, value, vector
 
 
 def get_head_patches(reduced, patch_size):
@@ -113,8 +121,9 @@ def load_head_patches(pkl_path):
 def load_all_heads(model_names, attacker_name, patch_size):
     mat = np.zeros((0, patch_size**2 * 3))
     for model in model_names:
-        pkl_path = get_save_file_name(
-            model, attacker_name, patch_size) + '.pkl'
+        pkl_path = './pkls/' + \
+            get_save_file_name(model, attacker_name, patch_size) + \
+            '.pkl'
         current = load_head_patches(pkl_path)
         print(f'  - Loaded {pkl_path}')
         mat = np.concatenate((mat, current), axis=0)
@@ -190,17 +199,23 @@ def run_patching_pipeline(
 
     # patching
     print('  - Patching')
-    patches = patching(perturbs, patch_size)
+    patches = patching(perturbs, patch_size, downsample=True)
 
     # pca
     print('  - Running PCA')
-    cum_sum, reduced = patch_pca(patches, pca_threshold)
+    cum_sum, reduced, value, vector = patch_pca(patches, pca_threshold)
 
-    # save head
+    # save files
     head = get_head_patches(reduced, patch_size)
-    pickle.dump(head, open(save_file_name + '.pkl', 'wb'))
+    pickle.dump(head, open('./pkls/' + save_file_name + '.pkl', 'wb'))
     # pickle.dump(cum_sum, open(save_file_name + '-cumsum.pkl', 'wb'))
-    print(f'  - Head samples saved to {save_file_name}')
+    print(f'  - Head samples saved to {"./pkls/" + save_file_name}')
+    pickle.dump(
+        [value, vector, reduced],
+        open('./pkls/' + save_file_name + '-full.pkl', 'wb'))
+    print(
+        '  - Full results dumped to '
+        f'{"./pkls/" + save_file_name + "-full.pkl"}')
 
     # visualization
     fig_patches, _ = visualize_head_patches(
@@ -244,12 +259,10 @@ def visualize_dot_products(dot_product, model_names, patch_size):
 
     return fig_mm, ax_mm
 
-# configs
-
 
 def main():
-    patch_size = 5
-    model_names = ['model1', 'model2', 'model3', 'model4', 'WRN28']
+    patch_size = 60
+    model_names = ['vgg16bn']
     pca_threshold = 0.95
     attacker_name = 'fw'
 
@@ -267,3 +280,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # print('Yooo.')
