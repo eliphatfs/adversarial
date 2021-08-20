@@ -1,9 +1,13 @@
 import torch
 import torchvision
+from PIL import Image
 from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
 
 import os
 import sys
+import numpy as np
+import pandas as pd
 
 
 def print_attack_main_args(args):
@@ -13,7 +17,10 @@ def print_attack_main_args(args):
     print(f"  - Epsilon: {args.epsilon:.5f}")
     print(f"  - Perturb steps: {args.perturb_steps}")
     print(f"  - Model name: {args.model_name}")
-    print(f"  - Model architecture: {args.model if args.model != '' else args.model_name}")
+    print(
+        "  - Model architecture: "
+        f"{args.model if args.model != '' else args.model_name}")
+    print(f"  - Dataset: {args.dataset}")
     print(f"  - Attacker: {args.attacker}")
     print(f"  - Targeted: {args.targeted == 'targeted'}")
 
@@ -52,9 +59,52 @@ def get_test_cifar(batch_size):
     ])
     testset = torchvision.datasets.CIFAR10(
         root='./data', train=False, download=True, transform=transform_test)
-    test_loader = torch.utils.data.DataLoader(
+    test_loader = DataLoader(
         testset, batch_size=batch_size, shuffle=False)
     return test_loader
+
+
+class ImageSet(Dataset):
+    def __init__(self, df, input_dir, transformer):
+        self.df = df
+        self.transformer = transformer
+        self.input_dir = input_dir
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, item):
+        image_name = self.df.iloc[item]['image_path']
+        image_path = os.path.join(self.input_dir, image_name)
+        image = torch.tensor(
+            np.array(Image.open(image_path))
+            .astype(np.float32).transpose((2, 0, 1)))/255.0
+        label_idx = self.df.iloc[item]['label_idx']
+        # target_idx = self.df.iloc[item]['target_idx']
+        sample = [
+            # 'dataset_idx': item,
+            image,  # image
+            label_idx,  # label
+            # 'target': target_idx+1,
+            # 'filename': image_name
+        ]
+        return sample
+
+
+def get_test_imagenet(batch_size):
+    input_dir = './data/images2/'
+    dev_data = pd.read_csv(input_dir + 'old_labels', header=None, sep=' ',
+                           names=['image_path', 'label_idx', 'target_idx'])
+    transformer = transforms.Compose([
+        transforms.ToTensor(),
+        # transforms.Normalize(mean=[0.5, 0.5, 0.5],
+        #                    std=[0.5, 0.5, 0.5]),
+    ])
+    datasets = ImageSet(dev_data, input_dir, transformer)
+    dataloader = DataLoader(datasets,
+                            batch_size=batch_size,
+                            shuffle=False)
+    return dataloader
 
 
 def prepare_cifar(batch_size, test_batch_size):
@@ -69,7 +119,7 @@ def prepare_cifar(batch_size, test_batch_size):
     ])
     trainset = torchvision.datasets.CIFAR10(
         root='./data', train=True, download=True, transform=transform_train)
-    train_loader = torch.utils.data.DataLoader(
+    train_loader = DataLoader(
         trainset, batch_size=batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.CIFAR10(
         root='./data', train=False, download=True, transform=transform_test)

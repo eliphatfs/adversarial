@@ -4,7 +4,7 @@ import sys
 import argparse
 import numpy
 
-from utils import get_test_cifar, print_attack_main_args
+from utils import get_test_cifar, get_test_imagenet, print_attack_main_args
 from attack import ArchTransferAttack
 from attack import BarrierMethodAttack
 from attack import BetterSecondOrderAttack
@@ -24,8 +24,8 @@ from models import WideResNet28
 from eval_model import eval_model_with_attack
 from attack import StochasticFWAdampAttack
 from attack import SPSA
-from model import get_custom_model, get_model_for_attack, get_model_for_defense
-from eval_model import eval_model_with_attack, eval_model_with_targeted_attack
+from model import get_custom_model, get_model_for_defense
+from eval_model import eval_model_with_targeted_attack
 
 
 torch.set_num_threads(8)
@@ -62,6 +62,8 @@ def parse_args():
         default='energy')
     parser.add_argument(
         '--targeted', choices=['targeted', 'untargeted'], default='untargeted')
+    parser.add_argument(
+        '--dataset', choices=['cifar10', 'imagenet'], default='cifar10')
     return parser.parse_args()
 
 
@@ -140,7 +142,10 @@ if __name__ == '__main__':
     args = parse_args()
     print_attack_main_args(args)
     device = torch.device(args.device)
-    if 'model' in args.model_name:
+    if (
+        args.model_name.startswith('model')
+        or args.model_name.startswith('vgg')
+    ):
         model = get_model_for_attack(args.model_name).to(device)
         # 根据model_name, 切换要攻击的model
     elif args.model_name != '':
@@ -149,11 +154,14 @@ if __name__ == '__main__':
         model = get_custom_model(args.model, args.model_path).to(device)
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
-    model = nn.DataParallel(model, device_ids=[0, 1, 2, 3])
+    model = nn.DataParallel(model, device_ids=[0, 1])
     attack = get_attacker(
         args.attacker, args.step_size, args.epsilon, args.perturb_steps)
     model.eval()
-    test_loader = get_test_cifar(args.batch_size)
+    if args.dataset == 'cifar10':
+        test_loader = get_test_cifar(args.batch_size)
+    else:
+        test_loader = get_test_imagenet(args.batch_size)
     if args.targeted == 'untargeted':
         # non-targeted attack
         natural_acc, robust_acc, distance = eval_model_with_attack(
@@ -164,7 +172,8 @@ if __name__ == '__main__':
         )
         if hasattr(attack, 'consumed_steps'):
             consumed_steps = numpy.array(attack.consumed_steps)
-            consumed_steps = consumed_steps[consumed_steps <= attack.perturb_steps]
+            consumed_steps = consumed_steps[consumed_steps <=
+                                            attack.perturb_steps]
             print("Mean", numpy.mean(consumed_steps))
             print("Median", numpy.median(consumed_steps))
     else:

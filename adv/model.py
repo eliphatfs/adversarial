@@ -2,6 +2,7 @@ from models import WideResNet, ResNet18
 from models import SmallResNet, WideResNet28, WideResNet34
 from models import PreActResNet18, PreActResNet34
 from models import ResNet34
+from models import vgg16_bn
 import torch
 
 
@@ -104,4 +105,6 @@ def get_model_for_attack(model_name):
             'models/weights/RST-AWP_cifar10_linf_wrn28-10.pt',
             map_location=pref.device
         )))
+    elif model_name == 'vgg16bn_pretrained':
+        model = vgg16_bn(pretrained=True)
     return model
