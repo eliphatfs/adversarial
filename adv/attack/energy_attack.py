@@ -53,7 +53,7 @@ class EnergyAttack():
     def change_base(self, step):
         if step == -1:
             self.eigv, self.basis, _ = pickle.load(
-                open("./data/attacked-pickle/model1_fw_5-full.pkl", "rb")
+                open("./data/attacked-pickle/model2_fw_5-pca.pkl", "rb")
             )
 
     def __call__(self, model, x, y):
