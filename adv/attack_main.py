@@ -90,7 +90,7 @@ def divide_state_dict(d, n):
         return d / n
 
 
-def get_attacker(attacker, step_size, epsilon, perturb_steps, subbatch_size):
+def get_attacker(attacker, step_size, epsilon, perturb_steps):
     if attacker == 'fw':
         print('Using FW-AdAmp', file=sys.stderr)
         return FWAdampAttackPlus(
@@ -126,10 +126,10 @@ def get_attacker(attacker, step_size, epsilon, perturb_steps, subbatch_size):
     elif attacker == 'energy':
         print('Using Energy Attack', file=sys.stderr)
         return EnergyAttack(
-            step_size, epsilon, perturb_steps, subbatch_size)
+            step_size, epsilon, perturb_steps)
     elif attacker == 'ta':
         print('Using External Attack', file=sys.stderr)
-        return TAEXT(step_size, epsilon, perturb_steps, subbatch_size)
+        return TAEXT(step_size, epsilon, perturb_steps)
     elif attacker == 'stoch_fw':
         print('Using SPSA FW-AdAmp')
         return StochasticFWAdampAttack(
@@ -138,6 +138,18 @@ def get_attacker(attacker, step_size, epsilon, perturb_steps, subbatch_size):
         print('Using SPSA')
         return SPSA(
             step_size, epsilon, perturb_steps)
+
+
+
+class WrappedModel(nn.Module):
+    def __init__(self, wrap, subbatch):
+        super().__init__()
+        self.wrap = wrap
+        self.subbatch = subbatch
+
+    def forward(self, x):
+        subbatches = torch.split(x, len(x) // self.subbatch + 1)
+        return torch.cat([self.wrap(sb) for sb in subbatches])
 
 
 if __name__ == '__main__':
@@ -156,9 +168,10 @@ if __name__ == '__main__':
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
     # model = nn.DataParallel(model, device_ids=[0, 1])
+    model = WrappedModel(model, args.subbatch_size)
     attack = get_attacker(
         args.attacker, args.step_size, args.epsilon,
-        args.perturb_steps, args.subbatch_size
+        args.perturb_steps
     )
     model.eval()
     if args.dataset == 'cifar10':

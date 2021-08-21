@@ -5,14 +5,13 @@ import pickle
 
 
 class EnergyAttack():
-    def __init__(self, step_size, epsilon, perturb_steps, sub,
+    def __init__(self, step_size, epsilon, perturb_steps,
                  random_start=None):
         self.step_size = step_size
         self.epsilon = epsilon
         self.perturb_steps = perturb_steps
         self.random_start = random_start
         self.consumed_steps = []
-        self.real_batch_size = sub
 
     @property
     def p(self):
@@ -49,8 +48,7 @@ class EnergyAttack():
             ss[:, 0].reshape(-1, 1, 1, 1) *
             nor_dir
         )
-        sp_dir = x_adv.new_tensor(sp_dir)
-        return self.do_clamp(x_adv + sp_dir, x)
+        return self.do_clamp(x_adv + x_adv.new_tensor(sp_dir), x)
 
     def change_base(self, step):
         if step == -1:
@@ -124,8 +122,7 @@ class EnergyAttack():
 
     def per_sample_adamp_loss(self, model, x, y):
         x_rg = x.detach().clone()
-        subbatches = torch.split(x_rg, len(x_rg) // self.real_batch_size + 1)
-        logits = torch.cat([model(sb) for sb in subbatches])
+        logits = model(x_rg)
         L = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         return (
             (logits.max(-1)[-1] != y).cpu().numpy(),
