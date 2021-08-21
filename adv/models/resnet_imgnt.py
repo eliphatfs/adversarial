@@ -188,6 +188,10 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        x -= x.new_tensor([0.485, 0.456, 0.406])\
+            .unsqueeze(-1).unsqueeze(-1).unsqueeze(0)
+        x /= x.new_tensor([0.229, 0.224, 0.225])\
+            .unsqueeze(-1).unsqueeze(-1).unsqueeze(0)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
