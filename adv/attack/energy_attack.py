@@ -35,7 +35,11 @@ class EnergyAttack():
         directions = self.basis.T[k]
         sp_dir = numpy.zeros(x_adv.shape)
         nor_dir = numpy.sign(directions).reshape(-1, 3, self.p, self.p) * self.epsilon * 2
-        nor_dir = numpy.tile(nor_dir, [1, 1, n_pert, n_pert])
+        if n_pert > 0:
+            nor_dir = numpy.tile(nor_dir, [1, 1, n_pert, n_pert])
+        else:
+            cx, cy = numpy.random.randint(self.p - 3, size=[2])
+            nor_dir = nor_dir[..., cx: cx + 3, cy: cy + 3]
         p = nor_dir.shape[-1]
         ss = numpy.sign(numpy.random.randn(len(nor_dir), 1))
         # for m in range(n_pert):
@@ -92,13 +96,19 @@ class EnergyAttack():
                 p_move = n_move / (len(x) - old_ncor)
                 if p_move < threshold:
                     cnt_cur += 1
-                    if cnt_cur >= cnt_hit:
+                    if cnt_cur >= cnt_hit and self.n_pert > 0:
                         # threshold *= 2 / 3
                         op = self.n_pert
-                        self.n_pert = max(1, int(self.n_pert / 2 + 0.5))
+                        if op == 1:
+                            self.n_pert = 0
+                        else:
+                            self.n_pert = max(1, int(self.n_pert / 2 + 0.5))
                         if (op != self.n_pert):
                             print(op, "->", self.n_pert)
                         cnt_cur = 0
+                        if self.n_pert == 1:
+                            cnt_hit = 20
+                            threshold = 0.01
                 else:
                     cnt_cur = 0
                 if numpy.sum(cor) != old_ncor:
