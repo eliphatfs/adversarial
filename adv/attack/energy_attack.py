@@ -23,14 +23,10 @@ class EnergyAttack():
         return x_adv
 
     def generate_new(self, x_adv, x, step):
-        n_pert = (
-            int((x.shape[-1] / self.p) ** 2) * 2 if step < int((x.shape[-1] / self.p) ** 2) else
-            2 if step < 60 else
-            1
-        )
+        n_pert = self.n_pert
         # return self.do_clamp(x_adv + torch.sign(torch.randn_like(x_adv)) * self.epsilon / 2, x)
-        # po = 0.5 * step / self.perturb_steps
-        po = 1.0 * step / self.perturb_steps
+        po = 0.5 * step / self.perturb_steps
+        # po = 1.0 * step / self.perturb_steps
         k = numpy.random.choice(
             len(self.eigv),
             size=[len(x)],
@@ -52,13 +48,17 @@ class EnergyAttack():
     def change_base(self, step):
         if step == -1:
             self.eigv, self.basis, _ = pickle.load(
-                open("./pkls/vgg16bn_fw_60-full.pkl", "rb")
+                open("./data/attacked-pickle/model2_fw_5-pca.pkl", "rb")
             )
 
     def __call__(self, model, x, y):
         model.eval()
         x_adv = x.detach().clone()
         self.change_base(-1)
+        threshold = 0.06
+        cnt_hit = 1
+        cnt_cur = 0
+        self.n_pert = int((x.shape[-1] / self.p) ** 2) * 2
         # for _ in range(int((x.shape[-1] / self.p) ** 2 / 2 + 1)):
         for _ in range(10):
             x_adv = self.generate_new(x_adv, x, 0)
@@ -75,16 +75,32 @@ class EnergyAttack():
                     x_adv[active_indices], x[active_indices], s)
                 ncr, nex = self.per_sample_adamp_loss(
                     model, new_samples, y[active_indices])
+                n_move = 0
                 for j, c, n, ns in zip(numpy.arange(len(x))[~cor], cur[active_indices], nex, new_samples):
                     if n > c:
                         x_adv[j] = ns
                         cur[j] = n
+                        n_move += 1
+                old_ncor = numpy.sum(cor)
+                p_move = n_move / (len(x) - old_ncor)
                 for j, suc, ns in zip(numpy.arange(len(x))[~cor], ncr, new_samples):
                     if suc:
                         steps[j] = min(steps[j], s + 1)
                         cor[j] = True
                         x_adv[j] = ns
-                print(s, numpy.sum(cor))
+                if p_move < threshold:
+                    cnt_cur += 1
+                    if cnt_cur >= cnt_hit:
+                        threshold *= 2 / 3
+                        op = self.n_pert
+                        self.n_pert = max(1, int(self.n_pert / 4 + 0.5))
+                        if (op != self.n_pert):
+                            print(op, "->", self.n_pert)
+                        cnt_cur = 0
+                else:
+                    cnt_cur = 0
+                if numpy.sum(cor) != old_ncor:
+                    print(s, numpy.sum(cor))
                 if numpy.all(ncr):
                     break
         self.consumed_steps.extend(steps)
