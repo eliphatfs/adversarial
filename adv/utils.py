@@ -84,7 +84,7 @@ class ImageSet(Dataset):
         sample = [
             # 'dataset_idx': item,
             image,  # image
-            label_idx,  # label
+            label_idx - 1,  # label
             # 'target': target_idx+1,
             # 'filename': image_name
         ]
@@ -93,7 +93,7 @@ class ImageSet(Dataset):
 
 def get_test_imagenet(batch_size):
     input_dir = './data/images2/'
-    dev_data = pd.read_csv(input_dir + 'old_labels', header=None, sep=' ',
+    dev_data = pd.read_csv(input_dir + 'new_val_label.txt', header=None, sep=' ',
                            names=['image_path', 'label_idx', 'target_idx'])
     transformer = transforms.Compose([
         transforms.ToTensor(),
