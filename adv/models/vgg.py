@@ -34,6 +34,10 @@ class VGG(nn.Module):
             self._initialize_weights()
 
     def forward(self, x):
+        x = x - x.new_tensor([0.485, 0.456, 0.406])\
+            .unsqueeze(-1).unsqueeze(-1).unsqueeze(0)
+        x = x / x.new_tensor([0.229, 0.224, 0.225])\
+            .unsqueeze(-1).unsqueeze(-1).unsqueeze(0)
         x = self.features(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
