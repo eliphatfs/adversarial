@@ -35,6 +35,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
     parser.add_argument('--batch_size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 128)')
+    parser.add_argument('--subbatch_size', type=int, default=16, metavar='N',
+                        help='sub batch size for supported attacks (ta, energy)')
     parser.add_argument('--step_size', type=int, default=0.003,
                         help='step size for pgd attack(default:0.003)')
     parser.add_argument('--epsilon', type=float, default=8/255.0,
@@ -51,7 +53,7 @@ def parse_args():
         '--model_path', type=str,
         default=''
     )
-    parser.add_argument('--device', type=str, default="cuda:0")
+    parser.add_argument('--device', type=str, default="cuda:1")
     parser.add_argument(
         '--attacker',
         choices=[
@@ -88,7 +90,7 @@ def divide_state_dict(d, n):
         return d / n
 
 
-def get_attacker(attacker, step_size, epsilon, perturb_steps):
+def get_attacker(attacker, step_size, epsilon, perturb_steps, subbatch_size):
     if attacker == 'fw':
         print('Using FW-AdAmp', file=sys.stderr)
         return FWAdampAttackPlus(
@@ -124,10 +126,10 @@ def get_attacker(attacker, step_size, epsilon, perturb_steps):
     elif attacker == 'energy':
         print('Using Energy Attack', file=sys.stderr)
         return EnergyAttack(
-            step_size, epsilon, perturb_steps)
+            step_size, epsilon, perturb_steps, subbatch_size)
     elif attacker == 'ta':
         print('Using External Attack', file=sys.stderr)
-        return TAEXT(step_size, epsilon, perturb_steps)
+        return TAEXT(step_size, epsilon, perturb_steps, subbatch_size)
     elif attacker == 'stoch_fw':
         print('Using SPSA FW-AdAmp')
         return StochasticFWAdampAttack(
@@ -153,9 +155,11 @@ if __name__ == '__main__':
         model = get_custom_model(args.model, args.model_path).to(device)
     # 攻击任务：Change to your attack function here
     # Here is a attack baseline: PGD attack
-    model = nn.DataParallel(model, device_ids=[0, 1])
+    # model = nn.DataParallel(model, device_ids=[0, 1])
     attack = get_attacker(
-        args.attacker, args.step_size, args.epsilon, args.perturb_steps)
+        args.attacker, args.step_size, args.epsilon,
+        args.perturb_steps, args.subbatch_size
+    )
     model.eval()
     if args.dataset == 'cifar10':
         test_loader = get_test_cifar(args.batch_size)
