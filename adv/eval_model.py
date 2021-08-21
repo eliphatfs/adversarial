@@ -1,3 +1,4 @@
+from utils import get_dataset_size
 import torch
 import pickle
 
@@ -5,11 +6,11 @@ from attack.pgd_attack import pgd_attack
 from tqdm import trange
 
 
-def eval_model(model, test_loader, device):
+def eval_model(model, test_loader, device, dataset):
     correct = []
     distance = []
     num = 0
-    with trange(10000) as pbar:
+    with trange(get_dataset_size(dataset)) as pbar:
         for x, label in test_loader:
             x, label = x.to(device), label.to(device)
             batch, c, h, w = x.shape
@@ -26,11 +27,12 @@ def eval_model(model, test_loader, device):
     return natural_acc, distance
 
 
-def eval_model_pgd(model, test_loader, device, step_size, epsilon, perturb_steps):
+def eval_model_pgd(
+        model, test_loader, device, step_size, epsilon, perturb_steps, dataset):
     correct_adv, correct = [], []
     distance = []
     num = 0
-    with trange(10000) as pbar:
+    with trange(get_dataset_size(dataset)) as pbar:
         for x, label in test_loader:
             x, label = x.to(device), label.to(device)
             batch, c, h, w = x.shape
@@ -56,12 +58,13 @@ def eval_model_pgd(model, test_loader, device, step_size, epsilon, perturb_steps
     return natural_acc, robust_acc, distance
 
 
-def eval_model_with_attack(model, test_loader, attack, epsilon, device):
+def eval_model_with_attack(
+        model, test_loader, attack, epsilon, device, dataset):
     orig_pic, adv_pic, perturb = [], [], []
     correct_adv, correct = [], []
     distance = []
     num = 0
-    with trange(10000) as pbar:
+    with trange(get_dataset_size(dataset)) as pbar:
         for x, label in test_loader:
             x, label = x.to(device), label.to(device)
             batch, c, h, w = x.shape
@@ -96,12 +99,13 @@ def eval_model_with_attack(model, test_loader, attack, epsilon, device):
     return natural_acc, robust_acc, distance
 
 
-def eval_model_with_targeted_attack(model, test_loader, attack, epsilon, device):
+def eval_model_with_targeted_attack(
+        model, test_loader, attack, epsilon, device, dataset):
     correct_adv, correct = [], []
     succeeded_adv = []
     distance = []
     num = 0
-    with trange(10000) as pbar:
+    with trange(get_dataset_size(dataset)) as pbar:
         for x, label in test_loader:
             x, label = x.to(device), label.to(device)
             batch, c, h, w = x.shape

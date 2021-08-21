@@ -165,7 +165,7 @@ if __name__ == '__main__':
     if args.targeted == 'untargeted':
         # non-targeted attack
         natural_acc, robust_acc, distance = eval_model_with_attack(
-            model, test_loader, attack, args.epsilon, device)
+            model, test_loader, attack, args.epsilon, device, args.dataset)
         print(
             "Natural Acc: %.5f, Robust acc: %.5f, distance: %.5f" %
             (natural_acc, robust_acc, distance)
@@ -183,8 +183,7 @@ if __name__ == '__main__':
         # targeted attack, default target is 0
         natural_acc, robust_acc, success_rate, distance =\
             eval_model_with_targeted_attack(
-                model, test_loader, attack, args.epsilon, device
-            )
+                model, test_loader, attack, args.epsilon, device, args.dataset)
         print(
             "Natural Acc: %.5f, Robust acc: %.5f, Success Rate: %.5f, distance: %.5f" %
             (natural_acc, robust_acc, success_rate, distance)

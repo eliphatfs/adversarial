@@ -126,3 +126,10 @@ def prepare_cifar(batch_size, test_batch_size):
     test_loader = torch.utils.data.DataLoader(
         testset, batch_size=test_batch_size, shuffle=False, **kwargs)
     return train_loader, test_loader
+
+
+def get_dataset_size(dataset):
+    if dataset == 'cifar10':
+        return 10000
+    else:
+        return 1000
