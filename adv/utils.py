@@ -67,7 +67,11 @@ def get_test_cifar(batch_size):
 class ImageSet(Dataset):
     def __init__(self, df, input_dir, transformer):
         self.df = df
-        self.transformer = transformer
+        self.transformer = transforms.Compose([
+            transforms.Scale(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor()
+        ])
         self.input_dir = input_dir
 
     def __len__(self):
@@ -76,9 +80,7 @@ class ImageSet(Dataset):
     def __getitem__(self, item):
         image_name = self.df.iloc[item]['image_path']
         image_path = os.path.join(self.input_dir, image_name)
-        image = torch.tensor(
-            np.array(Image.open(image_path))
-            .astype(np.float32).transpose((2, 0, 1)))/255.0
+        image = self.transformer(Image.load(image_path))
         label_idx = self.df.iloc[item]['label_idx']
         # target_idx = self.df.iloc[item]['target_idx']
         sample = [
