@@ -62,6 +62,17 @@ def get_custom_model(model, model_path):
     return model
 
 
+class Cifar10Renormalize(torch.nn.Module):
+    def __init__(self, wrap):
+        super().__init__()
+        self.wrap = wrap
+
+    def forward(self, x):
+        x = x - x.new_tensor([0.4914, 0.4822, 0.4465]).reshape(1, 3, 1, 1)
+        x = x / x.new_tensor([0.2023, 0.1994, 0.201]).reshape(1, 3, 1, 1)
+        return self.wrap(x)
+
+
 def _get_specified_model(model):
     if model == 'ResNet18':
         return ResNet18()
@@ -116,4 +127,5 @@ def get_model_for_attack(model_name):
     elif model_name.startswith('model_hub:'):
         _, a, b = model_name.split(":")
         model = torch.hub.load(a, b, pretrained=True)
+        model = Cifar10Renormalize(model)
     return model
