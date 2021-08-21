@@ -4,3 +4,5 @@ from .small_resnet import SmallResNet
 from .preactresnet import PreActResNet18, PreActResNet34
 from .trades_wide_resnet import WideResNet34, WideResNet28
 from .vgg import vgg16_bn
+from .inception import inception_v3
+from .resnet_imgnt import resnet18

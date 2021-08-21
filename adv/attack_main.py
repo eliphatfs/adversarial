@@ -144,7 +144,6 @@ if __name__ == '__main__':
     device = torch.device(args.device)
     if (
         args.model_name.startswith('model')
-        or args.model_name.startswith('vgg')
     ):
         model = get_model_for_attack(args.model_name).to(device)
         # 根据model_name, 切换要攻击的model

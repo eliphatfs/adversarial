@@ -1,3 +1,5 @@
+from models import resnet18
+from models import inception_v3
 from models import WideResNet, ResNet18
 from models import SmallResNet, WideResNet28, WideResNet34
 from models import PreActResNet18, PreActResNet34
@@ -105,6 +107,10 @@ def get_model_for_attack(model_name):
             'models/weights/RST-AWP_cifar10_linf_wrn28-10.pt',
             map_location=pref.device
         )))
-    elif model_name == 'vgg16bn_pretrained':
+    elif model_name == 'model_vgg16bn':
         model = vgg16_bn(pretrained=True)
+    elif model_name == 'model_resnet18_imgnet':
+        model = resnet18(pretrained=True)
+    elif model_name == 'model_inception':
+        model = inception_v3(pretrained=True)
     return model

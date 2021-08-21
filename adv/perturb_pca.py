@@ -199,7 +199,7 @@ def run_patching_pipeline(
 
     # patching
     print('  - Patching')
-    patches = patching(perturbs, patch_size, downsample=True)
+    patches = patching(perturbs, patch_size, downsample=False)
 
     # pca
     print('  - Running PCA')
@@ -218,13 +218,13 @@ def run_patching_pipeline(
         f'{"./pkls/" + save_file_name + "-full.pkl"}')
 
     # visualization
-    fig_patches, _ = visualize_head_patches(
-        head, patch_size, fig_title, figsize=10)
-    fig_patches.savefig('./figs/' + save_file_name + '-patches.png', dpi=200)
-    fig_cumsum, _ = visualize_cumsum_energy(
-        cum_sum, fig_title, pca_threshold)
-    fig_cumsum.savefig('./figs/' + save_file_name + '-energy.png', dpi=200)
-    print('  - Figures saved')
+    # fig_patches, _ = visualize_head_patches(
+    #     head, patch_size, fig_title, figsize=10)
+    # fig_patches.savefig('./figs/' + save_file_name + '-patches.png', dpi=200)
+    # fig_cumsum, _ = visualize_cumsum_energy(
+    #     cum_sum, fig_title, pca_threshold)
+    # fig_cumsum.savefig('./figs/' + save_file_name + '-energy.png', dpi=200)
+    # print('  - Figures saved')
 
 
 def visualize_dot_products(dot_product, model_names, patch_size):
@@ -261,8 +261,8 @@ def visualize_dot_products(dot_product, model_names, patch_size):
 
 
 def main():
-    patch_size = 60
-    model_names = ['vgg16bn']
+    patch_size = 5
+    model_names = ['model1']
     pca_threshold = 0.95
     attacker_name = 'fw'
 
@@ -271,11 +271,11 @@ def main():
         run_patching_pipeline(model, attacker_name, patch_size, pca_threshold)
         print(f'Done Running {model}')
 
-    print('Computing dot products')
-    dot_prod = compute_dot_products(model_names, attacker_name, patch_size)
-    # # overwrite
-    # patch_size = 16
-    visualize_dot_products(dot_prod, model_names, patch_size)
+    # print('Computing dot products')
+    # dot_prod = compute_dot_products(model_names, attacker_name, patch_size)
+    # # # overwrite
+    # # patch_size = 16
+    # visualize_dot_products(dot_prod, model_names, patch_size)
 
 
 if __name__ == '__main__':
