@@ -113,4 +113,7 @@ def get_model_for_attack(model_name):
         model = resnet18(pretrained=True)
     elif model_name == 'model_inception':
         model = inception_v3(pretrained=True)
+    elif model_name.startswith('model_hub:'):
+        _, a, b = model_name.split(":")
+        model = torch.hub.load(a, b, pretrained=True)
     return model
