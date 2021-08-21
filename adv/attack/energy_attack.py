@@ -34,14 +34,16 @@ class EnergyAttack():
         )
         directions = self.basis.T[k]
         sp_dir = numpy.zeros(x_adv.shape)
-        nor_dir = numpy.sign(directions) * self.epsilon * 2
-        ss = numpy.sign(numpy.random.randn(len(nor_dir), n_pert))
-        for m in range(n_pert):
-            px, py = numpy.random.randint(x.shape[-1] - self.p, size=[2])
-            sp_dir[..., px: px + self.p, py: py + self.p] = (
-                ss[:, m].reshape(-1, 1, 1, 1) *
-                nor_dir.reshape(-1, 3, self.p, self.p)
-            )
+        nor_dir = numpy.sign(directions).reshape(-1, 3, self.p, self.p) * self.epsilon * 2
+        nor_dir = numpy.tile(nor_dir, [1, 1, n_pert, n_pert])
+        p = nor_dir.shape[-1]
+        ss = numpy.sign(numpy.random.randn(len(nor_dir), 1))
+        # for m in range(n_pert):
+        px, py = numpy.random.randint(x.shape[-1] - p, size=[2])
+        sp_dir[..., px: px + p, py: py + p] = (
+            ss[:, 0].reshape(-1, 1, 1, 1) *
+            nor_dir
+        )
         sp_dir = x_adv.new_tensor(sp_dir)
         return self.do_clamp(x_adv + sp_dir, x)
 
@@ -55,10 +57,10 @@ class EnergyAttack():
         model.eval()
         x_adv = x.detach().clone()
         self.change_base(-1)
-        threshold = 0.06
+        threshold = 0.03
         cnt_hit = 1
         cnt_cur = 0
-        self.n_pert = int((x.shape[-1] / self.p) ** 2) * 2
+        self.n_pert = max(1, x.shape[-1] // self.p)
         # for _ in range(int((x.shape[-1] / self.p) ** 2 / 2 + 1)):
         for _ in range(10):
             x_adv = self.generate_new(x_adv, x, 0)
@@ -82,18 +84,18 @@ class EnergyAttack():
                         cur[j] = n
                         n_move += 1
                 old_ncor = numpy.sum(cor)
-                p_move = n_move / (len(x) - old_ncor)
                 for j, suc, ns in zip(numpy.arange(len(x))[~cor], ncr, new_samples):
                     if suc:
                         steps[j] = min(steps[j], s + 1)
                         cor[j] = True
                         x_adv[j] = ns
+                p_move = n_move / (len(x) - old_ncor)
                 if p_move < threshold:
                     cnt_cur += 1
                     if cnt_cur >= cnt_hit:
-                        threshold *= 2 / 3
+                        # threshold *= 2 / 3
                         op = self.n_pert
-                        self.n_pert = max(1, int(self.n_pert / 4 + 0.5))
+                        self.n_pert = max(1, int(self.n_pert / 2 + 0.5))
                         if (op != self.n_pert):
                             print(op, "->", self.n_pert)
                         cnt_cur = 0
