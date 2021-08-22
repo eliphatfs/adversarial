@@ -8,6 +8,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+from torchvision.datasets.mnist import MNIST
 
 
 def print_attack_main_args(args):
@@ -62,6 +63,16 @@ def get_test_cifar(batch_size):
     test_loader = DataLoader(
         testset, batch_size=batch_size, shuffle=False)
     return test_loader
+
+
+def get_test_mnist(batch_size):
+    trs = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x: torch.cat([x] * 3))
+    ])
+    ds = MNIST('./data', train=False, transform=trs, download=True)
+    dl = DataLoader(ds, batch_size, False, num_workers=8)
+    return dl
 
 
 class ImageSet(Dataset):
@@ -131,7 +142,7 @@ def prepare_cifar(batch_size, test_batch_size):
 
 
 def get_dataset_size(dataset):
-    if dataset == 'cifar10':
-        return 10000
-    else:
+    if dataset == 'imagenet':
         return 1000
+    else:
+        return 10000

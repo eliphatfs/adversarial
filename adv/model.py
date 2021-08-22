@@ -128,4 +128,7 @@ def get_model_for_attack(model_name):
         _, a, b = model_name.split(":")
         model = torch.hub.load(a, b, pretrained=True)
         model = Cifar10Renormalize(model)
+    elif model_name.startswith('model_mnist:'):
+        _, a = model_name.split(":")
+        model = torch.load('mnist.pt')[a]
     return model

@@ -4,7 +4,7 @@ import sys
 import argparse
 import numpy
 
-from utils import get_test_cifar, get_test_imagenet, print_attack_main_args
+from utils import get_test_cifar, get_test_imagenet, get_test_mnist, print_attack_main_args
 from attack import ArchTransferAttack
 from attack import BarrierMethodAttack
 from attack import BetterSecondOrderAttack
@@ -65,7 +65,7 @@ def parse_args():
     parser.add_argument(
         '--targeted', choices=['targeted', 'untargeted'], default='untargeted')
     parser.add_argument(
-        '--dataset', choices=['cifar10', 'imagenet'], default='cifar10')
+        '--dataset', choices=['cifar10', 'imagenet', 'mnist'], default='cifar10')
     return parser.parse_args()
 
 
@@ -176,6 +176,8 @@ if __name__ == '__main__':
     model.eval()
     if args.dataset == 'cifar10':
         test_loader = get_test_cifar(args.batch_size)
+    elif args.dataset == 'mnist':
+        test_loader = get_test_mnist(args.batch_size)
     else:
         test_loader = get_test_imagenet(args.batch_size)
     if args.targeted == 'untargeted':
