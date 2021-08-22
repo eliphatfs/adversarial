@@ -68,8 +68,8 @@ class ImageSet(Dataset):
     def __init__(self, df, input_dir, transformer):
         self.df = df
         self.transformer = transforms.Compose([
-            transforms.Scale(256),
-            transforms.CenterCrop(224),
+            transforms.Scale(299),
+            transforms.CenterCrop(299),
             transforms.ToTensor()
         ])
         self.input_dir = input_dir
