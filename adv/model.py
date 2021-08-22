@@ -147,4 +147,7 @@ def get_model_for_attack(model_name):
     elif model_name.startswith('model_mnist:'):
         _, a = model_name.split(":")
         model = torch.load('mnist.pt')[a]
+    elif model_name.startswith('model_ex:'):
+        _, a = model_name.split(":")
+        model = torch.load(a)
     return model

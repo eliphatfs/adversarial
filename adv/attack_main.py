@@ -3,6 +3,7 @@ import torch.nn as nn
 import sys
 import argparse
 import numpy
+from torch.utils.data import DataLoader
 
 from utils import get_test_cifar, get_test_imagenet, get_test_mnist, print_attack_main_args
 from attack import ArchTransferAttack
@@ -73,7 +74,7 @@ def parse_args():
     parser.add_argument(
         '--targeted', choices=['targeted', 'untargeted'], default='untargeted')
     parser.add_argument(
-        '--dataset', choices=['cifar10', 'imagenet', 'mnist'], default='cifar10')
+        '--dataset', choices=['cifar10', 'imagenet', 'mnist', 'rand_mnist'], default='cifar10')
     return parser.parse_args()
 
 
@@ -186,6 +187,12 @@ if __name__ == '__main__':
         test_loader = get_test_cifar(args.batch_size)
     elif args.dataset == 'mnist':
         test_loader = get_test_mnist(args.batch_size)
+    elif args.dataset == 'rand_mnist':
+        test_loader = get_test_mnist(1)
+        xs = [x for (x,), _ in test_loader]
+        ys = numpy.load("rand_mnist.npy")
+        ds = list(zip(xs, ys))
+        test_loader = DataLoader(ds, args.batch_size)
     else:
         test_loader = get_test_imagenet(args.batch_size)
     if args.targeted == 'untargeted':
