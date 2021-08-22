@@ -6,7 +6,6 @@ from torch.utils.data import Dataset, DataLoader
 
 import os
 import sys
-import numpy as np
 import pandas as pd
 from torchvision.datasets.mnist import MNIST
 
@@ -17,7 +16,9 @@ def print_attack_main_args(args):
     print(f"  - Step size: {args.step_size}")
     print(f"  - Epsilon: {args.epsilon:.5f}")
     print(f"  - Perturb steps: {args.perturb_steps}")
-    print(f"  - Model name: {args.model_name}")
+    print(
+        "  - Model name:"
+        f"{args.model_path if args.model_path != '' else args.model_name}")
     print(
         "  - Model architecture: "
         f"{args.model if args.model != '' else args.model_name}")
@@ -106,8 +107,10 @@ class ImageSet(Dataset):
 
 def get_test_imagenet(batch_size):
     input_dir = './data/images2/'
-    dev_data = pd.read_csv(input_dir + 'new_val_label.txt', header=None, sep=' ',
-                           names=['image_path', 'label_idx', 'target_idx'])
+    dev_data = pd.read_csv(
+        input_dir + 'new_val_label.txt',
+        header=None, sep=' ',
+        names=['image_path', 'label_idx', 'target_idx'])
     transformer = transforms.Compose([
         transforms.ToTensor(),
         # transforms.Normalize(mean=[0.5, 0.5, 0.5],

@@ -66,12 +66,23 @@ def patch_pca(patches, pca_threshold):
     return cum_sum, reduced, value, vector
 
 
-def get_head_patches(reduced, patch_size):
+def get_head_patches(reduced: np.ndarray, patch_size):
     # Patch, C, H, W
     # each row is a flattened patch
     patch_area = patch_size ** 2
     # # overwrite
-    # patch_area = 16 * 16
+    # patch_area = 16
+    if reduced.shape[0] < patch_area:
+        print(
+            '  - [Warn] Dimension-reduced array '
+            'does not have enough vectors '
+            f'({reduced.shape[0]} < {patch_area}) '
+            'Padding zeros.')
+        n_pads = patch_area - reduced.shape[0]
+        zero_padder = np.zeros((n_pads, reduced.shape[1]))
+        reduced = np.concatenate(
+            (reduced, zero_padder),
+            axis=0)
     head = reduced[:patch_area, :].reshape(
         (patch_area, 3, patch_size, patch_size))
     # head = np.random.rand(3, 5, 5, 25)
@@ -83,8 +94,8 @@ def get_head_patches(reduced, patch_size):
 def visualize_head_patches(head, patch_size, fig_title, figsize=10):
     head -= head.min()
     head /= head.max()
-    # # overwrite
-    # patch_size = 16
+    # overwrite
+    # patch_size = 4
     fig, axes = plt.subplots(
         patch_size, patch_size, figsize=(figsize, figsize))
     fig.suptitle(fig_title + ' Patches', fontsize=28)
@@ -132,9 +143,9 @@ def load_all_heads(model_names, attacker_name, patch_size):
 
 
 def generate_block_random_patch(patch_area):
-    # overwrite
-    # block_rand_patches = np.ones((256, 3*patch_area))
     block_rand_patches = np.ones((patch_area, 3*patch_area))
+    # overwrite
+    # block_rand_patches = np.ones((16, 3*patch_area))
     red = np.random.randn(block_rand_patches.shape[0], 1)
     green = np.random.randn(block_rand_patches.shape[0], 1)
     blue = np.random.randn(block_rand_patches.shape[0], 1)
@@ -153,9 +164,9 @@ def generate_block_random_patch(patch_area):
 
 
 def generage_random_patch(patch_area):
-    # overwrite
-    # rand_patches = np.random.randn(256, 3*patch_area)
     rand_patches = np.random.randn(patch_area, 3*patch_area)
+    # overwrite
+    # rand_patches = np.random.randn(16, 3*patch_area)
     rand_patches = rand_patches / \
         np.expand_dims(np.sqrt(np.sum(rand_patches ** 2, axis=1)), axis=1)
 
@@ -218,18 +229,20 @@ def run_patching_pipeline(
         f'{"./pkls/" + save_file_name + "-full.pkl"}')
 
     # visualization
-    # fig_patches, _ = visualize_head_patches(
-    #     head, patch_size, fig_title, figsize=10)
-    # fig_patches.savefig('./figs/' + save_file_name + '-patches.png', dpi=200)
-    # fig_cumsum, _ = visualize_cumsum_energy(
-    #     cum_sum, fig_title, pca_threshold)
-    # fig_cumsum.savefig('./figs/' + save_file_name + '-energy.png', dpi=200)
-    # print('  - Figures saved')
+    fig_patches, _ = visualize_head_patches(
+        head, patch_size, fig_title, figsize=10)
+    fig_patches.savefig('./figs/' + save_file_name + '-patches.png', dpi=200)
+    fig_cumsum, _ = visualize_cumsum_energy(
+        cum_sum, fig_title, pca_threshold)
+    fig_cumsum.savefig('./figs/' + save_file_name + '-energy.png', dpi=200)
+    print('  - Figures saved')
 
 
 def visualize_dot_products(dot_product, model_names, patch_size):
     print('  - Drawing Again.')
     patch_area = patch_size ** 2
+    # overwrite
+    # patch_area = 16
     ax_mm_label = [
         *model_names,
         'Random',
@@ -262,7 +275,17 @@ def visualize_dot_products(dot_product, model_names, patch_size):
 
 def main():
     patch_size = 5
-    model_names = ['model1']
+    # 'model1', 'model2', 'model3', 'model4', 'WRN28', 'MNIST_CNN',
+    model_names = [
+        'model1',
+        'model2',
+        'model3',
+        'model4',
+        'WRN28',
+        'MNIST_CNN',
+        'MNIST_DNN',
+        'MNIST_DNN03',
+    ]
     pca_threshold = 0.95
     attacker_name = 'fw'
 
@@ -271,11 +294,11 @@ def main():
         run_patching_pipeline(model, attacker_name, patch_size, pca_threshold)
         print(f'Done Running {model}')
 
-    # print('Computing dot products')
-    # dot_prod = compute_dot_products(model_names, attacker_name, patch_size)
-    # # # overwrite
-    # # patch_size = 16
-    # visualize_dot_products(dot_prod, model_names, patch_size)
+    print('Computing dot products')
+    dot_prod = compute_dot_products(model_names, attacker_name, patch_size)
+    # # overwrite
+    # patch_size = 16
+    visualize_dot_products(dot_prod, model_names, patch_size)
 
 
 if __name__ == '__main__':
