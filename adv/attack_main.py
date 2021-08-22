@@ -53,7 +53,7 @@ def parse_args():
         '--model_path', type=str,
         default=''
     )
-    parser.add_argument('--device', type=str, default="cuda:1")
+    parser.add_argument('--device', type=str, default="cuda:0")
     parser.add_argument(
         '--attacker',
         choices=[
