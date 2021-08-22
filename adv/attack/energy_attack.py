@@ -142,6 +142,7 @@ class EnergyAttack():
         L = [0.3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         return (
             (logits.max(-1)[-1] != y).cpu().numpy(),
-            sum(w ** 2 * F.cross_entropy(logits * w, y, reduction='none')
-                for w in L)
+            torch.sort(logits, descending=True)[0][..., 1] - torch.sort(logits, descending=True)[0][..., 0]
+            # sum(w ** 2 * F.cross_entropy(logits * w, y, reduction='none')
+            #     for w in L)
         )
