@@ -86,7 +86,7 @@ class ImageSet(Dataset):
         sample = [
             # 'dataset_idx': item,
             image,  # image
-            label_idx - 1,  # label
+            label_idx,  # label
             # 'target': target_idx+1,
             # 'filename': image_name
         ]
