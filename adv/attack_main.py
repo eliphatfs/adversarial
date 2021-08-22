@@ -148,7 +148,7 @@ class WrappedModel(nn.Module):
         self.subbatch = subbatch
 
     def forward(self, x):
-        subbatches = torch.split(x, len(x) // self.subbatch + 1)
+        subbatches = torch.split(x, self.subbatch)
         return torch.cat([self.wrap(sb) for sb in subbatches])
 
 
