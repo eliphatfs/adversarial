@@ -69,8 +69,10 @@ class EnergyAttack():
         cnt_cur = 0
         self.n_pert = max(1, x.shape[-1] // self.p)
         # for _ in range(int((x.shape[-1] / self.p) ** 2 / 2 + 1)):
-        for _ in range(10):
-            x_adv = self.generate_new(x_adv, x, 0)
+        # for _ in range(10):
+        #     x_adv = self.generate_new(x_adv, x, 0)
+        x_adv = torch.clamp(x + self.epsilon * torch.sign(
+                            torch.randn([3, 1, x.shape[-1]], device=x.device)), 0., 1.)
         cor, cur = self.per_sample_adamp_loss(model, x_adv, y)
         steps = numpy.full([len(x)], self.perturb_steps + 1)
         for j, suc in enumerate(cor):

@@ -15,7 +15,7 @@ class TAEXT():
         if self.square is None:
             self.square = Square(
                 model, n_queries=self.perturb_steps,
-                eps=self.epsilon, verbose=True
+                eps=self.epsilon, verbose=True, p_init=0.05
             )
         with torch.no_grad():
             return self.square(x, y)
