@@ -18,6 +18,10 @@ try:
     from attack.torchattackext import TAEXT
 except ImportError:
     pass
+try:
+    from mnist_vit import MegaSizer
+except ImportError:
+    pass
 from models import WideResNet
 from model import get_model_for_attack
 from models import WideResNet28
@@ -44,6 +48,10 @@ def parse_args():
     parser.add_argument('--perturb_steps', type=int, default=10000,
                         help='iterations for pgd attack (default pgd20)')
     parser.add_argument('--model_name', type=str, default="model1")
+    parser.add_argument(
+        '--custom_flags', type=str, default=[], action='append',
+        help="Customized flags for specific attacks"
+    )
     parser.add_argument(
         '--model',
         choices=['ResNet18', 'PreActResNet18',
