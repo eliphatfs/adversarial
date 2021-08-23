@@ -72,7 +72,7 @@ def get_test_mnist(batch_size):
         transforms.Lambda(lambda x: torch.cat([x] * 3))
     ])
     ds = MNIST('./data', train=False, transform=trs, download=True)
-    dl = DataLoader(ds, batch_size, False, num_workers=8)
+    dl = DataLoader(ds, batch_size, False)
     return dl
 
 

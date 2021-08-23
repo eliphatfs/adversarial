@@ -1,3 +1,5 @@
+from torchvision import transforms
+from torchvision.transforms.functional import InterpolationMode
 from models import resnet18
 from models import inception_v3
 from models import WideResNet, ResNet18
@@ -73,6 +75,17 @@ class Cifar10Renormalize(torch.nn.Module):
         return self.wrap(x)
 
 
+class ImageNetRenormalize(torch.nn.Module):
+    def __init__(self, wrap):
+        super().__init__()
+        self.wrap = wrap
+        self.sizer = transforms.Resize(384, interpolation=InterpolationMode.BICUBIC)
+    
+    def forward(self, x):
+        x = (x - 0.5) / 0.5
+        return self.wrap(self.sizer(x))
+
+
 def _get_specified_model(model):
     if model == 'ResNet18':
         return ResNet18()
@@ -124,6 +137,9 @@ def get_model_for_attack(model_name):
         model = resnet18(pretrained=True)
     elif model_name == 'model_inception':
         model = inception_v3(pretrained=True)
+    elif model_name == 'model_vitb':
+        from mnist_vit import ViT, MegaSizer
+        model = MegaSizer(ImageNetRenormalize(ViT('B_16_imagenet1k', pretrained=True)))
     elif model_name.startswith('model_hub:'):
         _, a, b = model_name.split(":")
         model = torch.hub.load(a, b, pretrained=True)
@@ -131,4 +147,7 @@ def get_model_for_attack(model_name):
     elif model_name.startswith('model_mnist:'):
         _, a = model_name.split(":")
         model = torch.load('mnist.pt')[a]
+    elif model_name.startswith('model_ex:'):
+        _, a = model_name.split(":")
+        model = torch.load(a)
     return model
