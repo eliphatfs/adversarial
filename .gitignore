@@ -143,3 +143,6 @@ dmypy.json
 !bin_amp_geo.pdf
 !Report/figs/*.pdf
 *.pkl
+
+# figs
+/adv/figs/
