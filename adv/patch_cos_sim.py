@@ -40,8 +40,6 @@ def maximum_cosine_similarity(basis, targets, n_patches, weight=None):
     else:
         return np.dot(weight, results)
 
-    return results.mean()
-
 
 def least_square_cosine_similarity(basis, targets, n_patches, weight=None):
     results = np.zeros(n_patches)
@@ -75,17 +73,23 @@ model_names = [
     'CIFAR_RPCONV',
     'MNIST_CNN',
     'MNIST_DNN',
+    'MNIST_DNN03',
     'MNIST_RPDENSE',
     'MNIST_RMDENSE',
+    'M104',
+    'C104',
+    'RMCONV',
+    'RPCONV',
     'VGG16BN',
     'VITB',
     'VITB_LARGE',
     'RANDOM',
-    'BLOCK_RANDOM'
+    'BLOCK_RANDOM',
 ]
 n_patches = 25
-weighted = True
-mode = 'maximum'
+weighted = False
+mode = 'least_squares'
+# mode = 'maximum'
 
 mode_title = 'Least Squares' if mode == 'least_squares' else 'Maximum'
 weighted_fname = 'weighted' if weighted else ''
@@ -109,19 +113,21 @@ for row, basis_name in enumerate(model_names):
         elif mode == 'maximum':
             cos_sim = maximum_cosine_similarity(
                 basis, target, n_patches, weights)
+        else:
+            raise ValueError(f'Unsupported mode: {mode}')
         pairwise_cos_similarities[row, col] = cos_sim
 
 # %%
 # plot
 matplotlib.style.use('seaborn-white')
-fig, ax = plt.subplots(figsize=(15, 15))
+fig, ax = plt.subplots(figsize=(16, 16))
 sns.heatmap(
     pairwise_cos_similarities,
     ax=ax,
     annot=True,
     fmt='.4f',
     annot_kws={
-        'fontsize': 'large'
+        'fontsize': 'medium'
     },
     cmap='YlGn',
     linewidths=0.5,

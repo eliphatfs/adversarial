@@ -44,6 +44,7 @@ def patching(perturbs, patch_size, downsample=False):
 
 def patch_pca(patches, pca_threshold):
     # centering
+    print(f'  - Centered. Removed mean: {patches.mean()}')
     patches_centered = patches - patches.mean()
 
     # eigenvalue decom
@@ -277,19 +278,24 @@ def visualize_dot_products(dot_product, model_names, patch_size):
 def main():
     patch_size = 5
     model_names = [
-        # 'MODEL1',
-        # 'MODEL2',
-        # 'MODEL3',
+        'MODEL1',
+        'MODEL2',
+        'MODEL3',
         'MODEL4',
-        # 'WRN28',
-        # 'CIFAR_RPCONV',
-        # 'MNIST_CNN',
-        # 'MNIST_DNN',
-        # 'MNIST_RPDENSE',
-        # 'MNIST_RMDENSE',
-        # 'VGG16BN',
-        # 'VITB',
-        # 'VITB_LARGE',
+        'WRN28',
+        'CIFAR_RPCONV',
+        'MNIST_CNN',
+        'MNIST_DNN',
+        'MNIST_DNN03',
+        'MNIST_RPDENSE',
+        'MNIST_RMDENSE',
+        'M104',
+        'C104',
+        'RMCONV',
+        'RPCONV'
+        'VGG16BN',
+        'VITB',
+        'VITB_LARGE',
     ]
     pca_threshold = 0.95
     attacker_name = 'fw'
@@ -307,5 +313,5 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
-    print('Yooo.')
+    main()
+    # print('Yooo.')
