@@ -26,8 +26,8 @@ def patching(perturbs, patch_size, downsample=False):
     N, C, H, W = perturbs.shape
     counter = H - patch_size + 1
     if downsample:
-        rows = np.random.choice(range(counter), int(counter * 0.5))
-        cols = np.random.choice(range(counter), int(counter * 0.5))
+        rows = np.random.choice(range(counter), int(counter * 0.15))
+        cols = np.random.choice(range(counter), int(counter * 0.15))
     else:
         rows = range(counter)
         cols = range(counter)
@@ -144,7 +144,7 @@ def load_all_heads(model_names, attacker_name, patch_size):
 
 
 def generate_block_random_patch(patch_area):
-    block_rand_patches = np.ones((3*patch_area, 3*patch_area))
+    block_rand_patches = np.ones((patch_area, 3*patch_area))
     # overwrite
     # block_rand_patches = np.ones((16, 3*patch_area))
     red = np.random.randn(block_rand_patches.shape[0], 1)
@@ -165,7 +165,7 @@ def generate_block_random_patch(patch_area):
 
 
 def generage_random_patch(patch_area):
-    rand_patches = np.random.randn(3*patch_area, 3*patch_area)
+    rand_patches = np.random.randn(patch_area, 3*patch_area)
     # overwrite
     # rand_patches = np.random.randn(16, 3*patch_area)
     rand_patches = rand_patches / \
@@ -212,7 +212,11 @@ def run_patching_pipeline(
 
     # patching
     print('  - Patching')
-    patches = patching(perturbs, patch_size, downsample=False)
+    if model_name == 'VITB' or model_name == 'VGG16BN':
+        print(f'  - Downsampling to prevent blowing up memory ({model_name})')
+        patches = patching(perturbs, patch_size, downsample=True)
+    else:
+        patches = patching(perturbs, patch_size, downsample=False)
 
     # pca
     print('  - Running PCA')
@@ -231,13 +235,13 @@ def run_patching_pipeline(
         f'{"./pkls/" + save_file_name + "-full.pkl"}')
 
     # visualization
-    fig_patches, _ = visualize_head_patches(
-        head, patch_size, fig_title, figsize=10)
-    fig_patches.savefig('./figs/' + save_file_name + '-patches.png', dpi=200)
-    fig_cumsum, _ = visualize_cumsum_energy(
-        cum_sum, fig_title, pca_threshold)
-    fig_cumsum.savefig('./figs/' + save_file_name + '-energy.png', dpi=200)
-    print('  - Figures saved')
+    # fig_patches, _ = visualize_head_patches(
+    #     head, patch_size, fig_title, figsize=10)
+    # fig_patches.savefig('./figs/' + save_file_name + '-patches.png', dpi=200)
+    # fig_cumsum, _ = visualize_cumsum_energy(
+    #     cum_sum, fig_title, pca_threshold)
+    # fig_cumsum.savefig('./figs/' + save_file_name + '-energy.png', dpi=200)
+    # print('  - Figures saved')
 
 
 def visualize_dot_products(dot_product, model_names, patch_size):
@@ -283,19 +287,19 @@ def main():
         'MODEL3',
         'MODEL4',
         'WRN28',
-        'CIFAR_RPCONV',
-        'MNIST_CNN',
+        # 'CIFAR_RPCONV',
+        # 'MNIST_CNN',
         'MNIST_DNN',
-        'MNIST_DNN03',
-        'MNIST_RPDENSE',
-        'MNIST_RMDENSE',
-        'M104',
-        'C104',
-        'RMCONV',
-        'RPCONV'
-        'VGG16BN',
-        'VITB',
-        'VITB_LARGE',
+        # 'MNIST_DNN03',
+        # 'MNIST_RPDENSE',
+        # 'MNIST_RMDENSE',
+        # 'M104',
+        # 'C104',
+        # 'RMCONV',
+        # 'RPCONV'
+        # 'VGG16BN',
+        # 'VITB',
+        # 'VITB_LARGE',
     ]
     pca_threshold = 0.95
     attacker_name = 'fw'
@@ -305,11 +309,11 @@ def main():
         run_patching_pipeline(model, attacker_name, patch_size, pca_threshold)
         print(f'Done Running {model}')
 
-    # print('Computing dot products')
-    # dot_prod = compute_dot_products(model_names, attacker_name, patch_size)
-    # # # overwrite
-    # # patch_size = 16
-    # visualize_dot_products(dot_prod, model_names, patch_size)
+    print('Computing dot products')
+    dot_prod = compute_dot_products(model_names, attacker_name, patch_size)
+    # # overwrite
+    # patch_size = 16
+    visualize_dot_products(dot_prod, model_names, patch_size)
 
 
 if __name__ == '__main__':
