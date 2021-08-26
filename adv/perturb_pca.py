@@ -208,7 +208,7 @@ def run_patching_pipeline(
     # load perturb
     print(f'  - Loading Perturbation from {pkl_path}')
     perturbs = np.array(pickle.load(open(pkl_path, 'rb')))
-    perturbs = np.abs(perturbs)
+    # perturbs = np.abs(perturbs)
 
     # patching
     print('  - Patching')
@@ -280,16 +280,16 @@ def visualize_dot_products(dot_product, model_names, patch_size):
 
 
 def main():
-    patch_size = 5
+    patch_size = 28
     model_names = [
-        'MODEL1',
-        'MODEL2',
-        'MODEL3',
+        # 'MODEL1',
+        # 'MODEL2',
+        # 'MODEL3',
         'MODEL4',
-        'WRN28',
+        # 'WRN28',
         # 'CIFAR_RPCONV',
         # 'MNIST_CNN',
-        'MNIST_DNN',
+        # 'MNIST_DNN',
         # 'MNIST_DNN03',
         # 'MNIST_RPDENSE',
         # 'MNIST_RMDENSE',
@@ -309,11 +309,11 @@ def main():
         run_patching_pipeline(model, attacker_name, patch_size, pca_threshold)
         print(f'Done Running {model}')
 
-    print('Computing dot products')
-    dot_prod = compute_dot_products(model_names, attacker_name, patch_size)
-    # # overwrite
-    # patch_size = 16
-    visualize_dot_products(dot_prod, model_names, patch_size)
+    # print('Computing dot products')
+    # dot_prod = compute_dot_products(model_names, attacker_name, patch_size)
+    # # # overwrite
+    # # patch_size = 16
+    # visualize_dot_products(dot_prod, model_names, patch_size)
 
 
 if __name__ == '__main__':
