@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 args = {
     'number_images': 1000,
-    'model': 'model_vgg16bn',  # model to be attacked
+    'model': 'model_inception',  # model to be attacked
     'method': 'uniform',  # or biased, average, fixed biased, fixed average
     'norm': 'linf',  # linf only
     'use_larger_step_size': True,
@@ -68,8 +68,11 @@ success = 0
 queries = []
 correct = 0
 
+img_counter = 0
+
 test_loader = get_test_imagenet(1)
 for image, label in test_loader:
+    img_counter += 1
     image = image.to(args['device'])
     label = label.to(args['device'])
     sigma = ini_sigma
@@ -285,16 +288,18 @@ for image, label in test_loader:
         adv_loss = F.cross_entropy(adv_prob, label)
 
         print(
+            'Image:', img_counter,
             'Queries:', total_q,
             'Loss:', adv_loss.item(),
             'Prediction:', adv_label.item(),
             'OriginalPred:', ori_pred.item(),
-            'Truth:', label.item())
+            'Truth:', label.item(), '\r', flush=True)
         ite += 1
 
         if adv_label != label:
             print('Done at query:', total_q)
             success += 1
             queries.append(total_q)
+            break
 
 print('Success Rate:', success / args['number_images'])
