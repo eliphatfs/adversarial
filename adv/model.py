@@ -139,7 +139,7 @@ def get_model_for_attack(model_name):
         model = inception_v3(pretrained=True)
     elif model_name == 'model_vitb':
         from mnist_vit import ViT, MegaSizer
-        model = MegaSizer(ImageNetRenormalize(ViT('B_16_imagenet1k', pretrained=True)))
+        model = (ImageNetRenormalize(ViT('B_16_imagenet1k', pretrained=True)))
     elif model_name.startswith('model_hub:'):
         _, a, b = model_name.split(":")
         model = torch.hub.load(a, b, pretrained=True)

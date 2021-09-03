@@ -80,8 +80,8 @@ class ImageSet(Dataset):
     def __init__(self, df, input_dir, transformer):
         self.df = df
         self.transformer = transforms.Compose([
-            transforms.Scale(299),
-            transforms.CenterCrop(299),
+            transforms.Scale(384),
+            transforms.CenterCrop(384),
             transforms.ToTensor()
         ])
         self.input_dir = input_dir
@@ -113,6 +113,7 @@ def get_test_imagenet(batch_size):
         names=['image_path', 'label_idx', 'target_idx'])
     transformer = transforms.Compose([
         transforms.ToTensor(),
+        # transforms.Resize(384)
         # transforms.Normalize(mean=[0.5, 0.5, 0.5],
         #                    std=[0.5, 0.5, 0.5]),
     ])

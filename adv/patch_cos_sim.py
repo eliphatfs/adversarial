@@ -59,6 +59,26 @@ def least_square_cosine_similarity(basis, targets, n_patches, weight=None):
         return np.dot(weight, results)
 
 
+def test_similarity(bas, tar, en_bas, en_tar, nmb):
+    q = []
+    for i in range(len(tar)):
+        for j in range(len(bas)):
+            pick = j
+            # pick = np.argmax([abs(tar[:, i].dot(np.sign(bas[:, j]))) for j in range(len(bas))])
+            q.append(abs(tar[:, i].dot(np.sign(bas[:, pick]))) * en_tar[i] / en_tar.sum() * en_bas[pick] / en_bas.sum())
+    return np.sum(q)
+    '''A = a.T.astype(np.float64) @ np.diag(ena) @ a.astype(np.float64)
+    B = b.T.astype(np.float64) @ np.diag(enb) @ b.astype(np.float64)
+    C = (
+        a.T.astype(np.float64) @ np.diag(1 / ena) @ a.astype(np.float64)
+        @ b.T.astype(np.float64) @ np.diag(enb) @ b.astype(np.float64)
+    )
+    print(np.linalg.det(A), np.linalg.det(B), np.linalg.det(C))
+    return 0.5 * (
+        -np.log(np.linalg.det(C)) - len(ena)
+        + np.trace(C)
+    )'''
+
 # %%
 # params
 patch_size = 5
@@ -70,26 +90,26 @@ model_names = [
     'MODEL3',
     'MODEL4',
     'WRN28',
-    'CIFAR_RPCONV',
-    'MNIST_CNN',
-    'MNIST_DNN',
-    'MNIST_DNN03',
-    'MNIST_RPDENSE',
-    'MNIST_RMDENSE',
-    'M104',
-    'C104',
-    'RMCONV',
-    'RPCONV',
+    # 'CIFAR_RPCONV',
+    # 'MNIST_CNN',
+    # 'MNIST_DNN',
+    # 'MNIST_DNN03',
+    # 'MNIST_RPDENSE',
+    # 'MNIST_RMDENSE',
+    # 'M104',
+    # 'C104',
+    # 'RMCONV',
+    # 'RPCONV',
     'VGG16BN',
     'VITB',
     'VITB_LARGE',
-    'RANDOM',
+    # 'RANDOM',
     'BLOCK_RANDOM',
 ]
 n_patches = 25
-weighted = False
+weighted = True
 mode = 'least_squares'
-# mode = 'maximum'
+mode = 'maximum'
 
 mode_title = 'Least Squares' if mode == 'least_squares' else 'Maximum'
 weighted_fname = 'weighted' if weighted else ''
@@ -115,14 +135,14 @@ for row, basis_name in enumerate(model_names):
                 basis, target, n_patches, weights)
         else:
             raise ValueError(f'Unsupported mode: {mode}')
-        pairwise_cos_similarities[row, col] = cos_sim
+        pairwise_cos_similarities[row, col] = test_similarity(basis, target, b_val, t_val, basis_name)
 
 # %%
 # plot
 matplotlib.style.use('seaborn-white')
 fig, ax = plt.subplots(figsize=(16, 16))
 sns.heatmap(
-    pairwise_cos_similarities,
+    pairwise_cos_similarities,  # / np.nanmax(pairwise_cos_similarities[pairwise_cos_similarities != np.inf]),
     ax=ax,
     annot=True,
     fmt='.4f',
