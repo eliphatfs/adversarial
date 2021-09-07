@@ -1,36 +1,60 @@
+# %%
+import cv2 as cv
 import pickle
-import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
-matplotlib.style.use('seaborn-white')
+from perturb_pca import get_perturb_pkl_name, get_save_file_name, load_head_patches
 
 
-def get_cumsum_file_name(model_name, attacker_name, patch_size):
-    return './'\
-        + model_name + '_'\
-        + attacker_name + '_'\
-        + str(patch_size) + '-cumsum'
+def non_flattening_patching(perturbs, patch_size, downsample=False):
+    N, C, H, W = perturbs.shape
+    counter = H - patch_size + 1
+    if downsample:
+        rows = np.random.choice(range(counter), int(counter * 0.15))
+        cols = np.random.choice(range(counter), int(counter * 0.15))
+    else:
+        rows = range(counter)
+        cols = range(counter)
+    print(f'  - Generating {len(rows)} x {len(cols)} patches.')
+    patches = [
+        perturbs[item, :, row:row+patch_size, col:col+patch_size]
+        for item in range(N)
+        for row in rows
+        for col in cols]
+
+    return np.array(patches)
 
 
-def load_cumsum_pkl(path):
-    return pickle.load(open(path, 'rb'))
+def convert_image_to_unit8(img):
+    return np.array(8 * (
+        np.transpose(img, (1, 2, 0)) + 8/255) * 256, dtype=np.uint8)
 
 
+def AI2614(img):
+    red = cv.equalizeHist(img[:, :, 0])
+    green = cv.equalizeHist(img[:, :, 1])
+    blue = cv.equalizeHist(img[:, :, 2])
+    return np.transpose(np.array([red, green, blue]), (1, 2, 0))
+
+
+# %%
+model = 'model2'
 attacker = 'fw'
-model_names = ['model1', 'model2', 'model3', 'model4', 'WRN28']
-patch_sizes = [3, 9, 15, 32]
 
-for model in model_names:
-    fig, ax = plt.subplots()
-    for patch_size in patch_sizes:
-        fname = get_cumsum_file_name(model, attacker, patch_size)
-        cum_sum = load_cumsum_pkl(
-            fname + '.pkl')
-        x = np.arange(0, len(cum_sum), 1, dtype=float) + 1
-        x /= len(cum_sum)
-        ax.plot(x, cum_sum, label=f'Patch size: {patch_size}')
-        ax.set_ylabel('Cumulative Energy')
-        ax.set_xlabel('$k/N$')
-        ax.set_title(model)
-        ax.legend()
-    fig.savefig('./figs/' + f'{model}_fw-cumsum.png', dpi=200)
+ptbname = get_perturb_pkl_name(model, attacker)
+
+print(f'  - Loading Perturbation from {ptbname}')
+perturbs = np.array(pickle.load(open(ptbname, 'rb')))
+
+# patches = non_flattening_patching(perturbs, 5, downsample=False)
+
+# %%
+pkl_path = './pkls/' + \
+    get_save_file_name(model, attacker, 5) + \
+    '.pkl'
+current = load_head_patches(pkl_path)
+print(f'  - Loaded {pkl_path}')
+current = current.reshape((-1, 3, 5, 5))
+current = np.transpose(current, (0, 2, 3, 1))
+current = current - current.min()
+current = current / current.max()

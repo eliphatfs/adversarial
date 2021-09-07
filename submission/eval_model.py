@@ -1,0 +1,63 @@
+import torch
+from utils import get_dataset_size
+from tqdm import trange
+
+
+def eval_model(model, test_loader, device, dataset):
+    correct = []
+    distance = []
+    num = 0
+    with trange(get_dataset_size(dataset)) as pbar:
+        for x, label in test_loader:
+            x, label = x.to(device), label.to(device)
+            batch, c, h, w = x.shape
+            model.eval()
+            with torch.no_grad():
+                output = model(x)
+            pred = output.argmax(dim=1)
+            correct.append(pred == label)
+            num += x.shape[0]
+            pbar.set_description(
+                f"Acc: {torch.cat(correct).float().mean():.5f}")
+            pbar.update(x.shape[0])
+    natural_acc = torch.cat(correct).float().mean()
+    return natural_acc, distance
+
+
+def eval_model_with_attack(
+        model, test_loader, attack, epsilon, device, dataset):
+    orig_pic, adv_pic, perturb = [], [], []
+    correct_adv, correct = [], []
+    distance = []
+    num = 0
+    with trange(get_dataset_size(dataset)) as pbar:
+        for x, label in test_loader:
+            x, label = x.to(device), label.to(device)
+            batch, c, h, w = x.shape
+            x_adv = attack(model, x.clone(), label.clone())
+            x_adv = torch.min(torch.max(x_adv, x - epsilon), x + epsilon)
+            x_adv = x_adv.clamp(0, 1)
+            batch_orig_pic = x.cpu().detach().numpy()
+            batch_adv_pic = x_adv.cpu().detach().numpy()
+            orig_pic.extend(batch_orig_pic)
+            adv_pic.extend(batch_adv_pic)
+            perturb.extend(batch_adv_pic - batch_orig_pic)
+            model.eval()
+            with torch.no_grad():
+                output = model(x)
+                output_adv = model(x_adv)
+            distance.append(
+                torch.max((x-x_adv).reshape(batch, -1).abs(), dim=1)[0])
+            pred = output.argmax(dim=1)
+            pred_adv = output_adv.argmax(dim=1)
+            correct.append(pred == label)
+            correct_adv.append(pred_adv == label)
+            num += x.shape[0]
+            pbar.set_description(
+                f"Acc: {torch.cat(correct).float().mean():.5f}"
+                f"Robust Acc:{torch.cat(correct_adv).float().mean():.5f}")
+            pbar.update(x.shape[0])
+    natural_acc = torch.cat(correct).float().mean()
+    robust_acc = torch.cat(correct_adv).float().mean()
+    distance = torch.cat(distance).max()
+    return natural_acc, robust_acc, distance
