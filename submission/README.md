@@ -40,6 +40,7 @@ python attack_main.py --model_name model_vgg16bn --attacker energy --custom_flag
 - `--batch_size`: Default 128.
 - `--subbatch_size`: A batch is further divided into multiple sub-batches. This argument specifies the size of sub-batches. Default 16.
 - `--epsilon`: The maximum L-inf distance for the perturbation. Default 0.05.
+- `perturb_steps`: For white-box attacks, this is the maximum step of perturbations. For black-box attacks, this is the maximum number of queries. Default 10000 (for black-box attacks).
 - `--model_name`: The model to attack. We currently support:
   - `model_vgg16bn`: batch-normalized VGG16
   - `model_resnet18`: ResNet18

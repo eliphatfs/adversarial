@@ -13,7 +13,6 @@ from torchvision.datasets.mnist import MNIST
 def print_attack_main_args(args):
     print("===== Arguments =====")
     print(f"  - Batch size: {args.batch_size}")
-    print(f"  - Step size: {args.step_size}")
     print(f"  - Epsilon: {args.epsilon:.5f}")
     print(f"  - Perturb steps: {args.perturb_steps}")
     print(f"  - Model name: {args.model_name}")
