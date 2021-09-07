@@ -12,9 +12,13 @@ All the code, unless otherwise stated, should be able to run with
 - numpy 1.19.2
 - scipy 1.6.2
 
+For vision transformer (ViT), you also need to install
+
+- pytorch_pretrained_vit
+
 ### Dataset
 
-- The test set we used for ImageNet is available [here].
+- The test set we used for ImageNet is available [here](https://bot-service.flandre.info/imagenet.val.zip).
 - Please unzip the dataset to `./data/`.
 - The file structure should be like `./data/images2/ILSVRC2012_val_00000094.JPEG`.
 
@@ -37,7 +41,7 @@ python attack_main.py --model_name model_vgg16bn --attacker energy --custom_flag
 
 ### Arguments for `attack_main.py`
 
-- `--batch_size`: Default 128.
+- `--batch_size`: Default 128. Use 10000 for better running time if you have enough memory.
 - `--subbatch_size`: A batch is further divided into multiple sub-batches. This argument specifies the size of sub-batches. Default 16.
 - `--epsilon`: The maximum L-inf distance for the perturbation. Default 0.05.
 - `perturb_steps`: For white-box attacks, this is the maximum step of perturbations. For black-box attacks, this is the maximum number of queries. Default 10000 (for black-box attacks).
@@ -48,9 +52,9 @@ python attack_main.py --model_name model_vgg16bn --attacker energy --custom_flag
   - `model_vitb`: ViTB16
 - `--attacker`: The attack to be used. We currently support:
   - `energy`: Energy Attack **(ours)**. (Black-box)
-  - `fw`: Frank-Wolfe Attack. (White-box)
+  - `fw`: Frank-Wolfe Attack used in the preparation phase of Energy Attack. (White-box)
 - `--custom_flags`: We defined custom flags for Energy Attack. Currently, this argument should be used together with Energy Attack only.
-  - `ea:annealoff`: Whether to enable annealing of Energy Attack. **Always add this flag when using Energy Attack for better performance.**
+  - `ea:annealoff`: Whether to enable annealing of Energy Attack. For all our experiments in the paper we added this flag when using Energy Attack for better performance.
   - `ea:basepkl:<your_pkl>`: Changes the perturbation patches used for Energy Attack. By default we use patches from an adversarially-trained CIFAR10 ResNet18. For details please refer to [this section](#using-other-perturbation-patches).
 
 ### Using other perturbation patches
