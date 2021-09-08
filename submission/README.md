@@ -56,6 +56,7 @@ python attack_main.py --model_name model_vgg16bn --attacker energy --custom_flag
 - `--custom_flags`: We defined custom flags for Energy Attack. Currently, this argument should be used together with Energy Attack only.
   - `ea:annealoff`: Whether to enable annealing of Energy Attack. For all our experiments in the paper we added this flag when using Energy Attack for better performance.
   - `ea:basepkl:<your_pkl>`: Changes the perturbation patches used for Energy Attack. By default we use patches from an adversarially-trained CIFAR10 ResNet18. For details please refer to [this section](#using-other-perturbation-patches).
+  - `--step_size`: Step size for PGD-based attack. This parameter is not required by FW or Energy Attack. We keep this parameter for better extendability, in case PGD-based attacks are added to this benchmark.
 
 ### Using other perturbation patches
 
