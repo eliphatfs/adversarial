@@ -41,7 +41,7 @@ def parse_args():
     )
     parser.add_argument('--device', type=str, default="cuda:0")
     parser.add_argument(
-        '--step_size', type=float, default=0.003,
+        '--step_size', type=float, default=None,
         help='Stepsize used in PGD-based attacks.'
         'This argument is not required if using FW or Energy.')
     parser.add_argument(
